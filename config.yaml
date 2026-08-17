@@ -1,0 +1,22 @@
+dataset:
+  name: eegmmidb
+  path: data/
+  runs: [4, 8, 12]
+  sfreq: 160
+  exclude_subjects: [88, 92, 100]
+  label_map: {T1: left, T2: right}
+  n_classes: 2
+preprocess:
+  bandpass: [8.0, 30.0]
+  tmin: 0.0
+  tmax: 4.0
+  normalize: per_channel_train_stats
+splits:
+  strategy: subject_wise
+  ratios: [0.7, 0.15, 0.15]
+  seed: 42
+budgets: [4, 6, 8, 12, 16, 32, 64]
+reduction_mode: reduce    # reduce | mask
+eval:
+  primary_metric: cohen_kappa
+  threshold: 0.90
