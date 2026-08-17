@@ -11,6 +11,9 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "config.yaml"
 
+# EEGMMIDB ships 109 subjects, S001-S109 (protocol-locked dataset).
+N_SUBJECTS = 109
+
 PathLike = Union[str, Path]
 
 
