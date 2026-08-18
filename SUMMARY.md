@@ -74,6 +74,25 @@ for S104), but the covering test is still to be written.
   come from post-drop events, X/y stay aligned), so these subjects simply
   have 42–44 trials instead of 45.
 
+## Session 3 — channel ranking + budget utility (commit 45fdb9a)
+
+- `src/ranking.py` (`python -m src.ranking`) — per-channel Fisher score of
+  8–30 Hz log-bandpower (per-trial log-variance of the bandpassed epochs),
+  computed per train-split subject and averaged over the 74 train subjects
+  only (no val/test influence, tested). Wrote `channel_ranking.json`
+  (committed; generated once, refuses overwrite like splits.json).
+- Ranking result: right sensorimotor cortex dominates — top 5 are C4, CP4,
+  C6, CP6, FC4; C2 rank 7, CP3 rank 17, C3 rank 23, Cz rank 49. The
+  hemispheric asymmetry is a property of the data/method (lateralized ERD),
+  worth noting when interpreting small-k budgets: k=4 selects
+  right-hemisphere channels only.
+- `src/budget.py` — `top_k_channels` + `reduce_channels`/`apply_budget`:
+  physically subsets to the top-k ranked channels, returned in original
+  montage order; k=64 is the identity; `mask` mode raises until needed.
+- `tests/test_ranking_budget.py` — 9 tests: known-discriminative-channel
+  recovery, determinism, train-only leakage guard, selection correctness,
+  budget validation, overwrite refusal. Full suite: 28 passing.
+
 ## Next steps
 
 - Repo migration: DONE — `origin` now points at
