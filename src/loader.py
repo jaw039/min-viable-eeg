@@ -22,6 +22,10 @@ N_SAMPLES = 641
 # T1 = left fist, T2 = right fist; labels are id - 1 (0 = left, 1 = right).
 _EVENT_ID = {"T1": 1, "T2": 2}
 
+# The mapping this module implements. config dataset.label_map must agree,
+# or provenance (config hash) would assert a mapping the code never applied.
+_LABEL_MAP = {"T1": "left", "T2": "right"}
+
 
 def _load_run(path: Path, config: dict) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     raw = mne.io.read_raw_edf(path, preload=True, verbose="ERROR")
@@ -67,6 +71,13 @@ def load_subject(
     """
     if subject_id in config["dataset"]["exclude_subjects"]:
         raise ValueError("Subject {} is excluded by protocol".format(subject_id))
+    if config["dataset"].get("label_map") != _LABEL_MAP:
+        raise ValueError(
+            "config dataset.label_map {} does not match the locked protocol "
+            "mapping {} implemented by this loader".format(
+                config["dataset"].get("label_map"), _LABEL_MAP
+            )
+        )
     if runs is None:
         runs = config["dataset"]["runs"]
 
