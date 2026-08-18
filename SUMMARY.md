@@ -11,7 +11,7 @@ This log covers the data-pipeline work to date (2026-08-16).
   `numpy==2.0.2`, `scipy==1.13.1`, `PyYAML==6.0.2`, `pytest==8.3.5`.
 - Run everything from repo root with `.venv/bin/python`.
 
-## Session 1 — download, inventory, loader (commit cc03bd8)
+## Session 1 — download, inventory, loader (commit 5bd80e2)
 
 - `scripts/download_data.py` — downloads runs 4/8/12 per subject via
   `eegbci.load_data`, skips excluded subjects (88/92/100), appends
@@ -41,7 +41,7 @@ one file; epoch-drop path and excluded-subject guard untested; config
 truncated (~106 s)** — the loader handles it (drops 1 epoch, ~42 trials
 for S104), but the covering test is still to be written.
 
-## Session 2 — splits, normalization, cache (commits 5155761, 4f6ff88)
+## Session 2 — splits, normalization, cache (commits 5abbfa6, 6b33efb)
 
 - `src/splits.py` (`python -m src.splits`) — deterministic subject-wise
   split of IDs 1–109 minus exclusions (106 subjects), seed 42 →

@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "git_commit": "5155761301ece152e44bac98579d2f7b8307cdcd",
+    "git_commit": "55a17a3e5168ca44c813176ff0a60a48f17c54e9-dirty",
     "config_hash": "f31815c177f9",
-    "generated_utc": "2026-08-17T00:30:30+00:00"
+    "generated_utc": "2026-08-18T00:23:29+00:00"
   },
   "strategy": "subject_wise",
   "seed": 42,
