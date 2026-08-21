@@ -109,9 +109,11 @@ def load_subject_group(
 def main():
     config = load_config()
 
-    train_subjects, val_subjects, _ = (
-        load_split_subjects()
-    )
+    train_subjects, val_subjects, _ = load_split_subjects()
+
+# TEMPORARY SMALL VALIDATION RUN
+    train_subjects = [1, 2, 3]
+    val_subjects = [4]
 
     print("Training subjects:")
     print(train_subjects)
