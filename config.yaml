@@ -20,3 +20,24 @@ reduction_mode: reduce    # reduce | mask
 eval:
   primary_metric: cohen_kappa
   threshold: 0.90
+
+
+
+
+
+model:
+  n_classes: 2
+  n_samples: 641
+  dropout: 0.5
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  teacher_epochs: 10
+
+distillation:
+  channel_count: 8
+  channel_seed: 42
+  alpha: 0.5
+  temperature: 4.0
+  validation_epochs: 5
