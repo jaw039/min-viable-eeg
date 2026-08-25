@@ -9,11 +9,18 @@ Writes to figures/:
                      per-subject log-bandpower difference at C3 (right minus
                      left trials) and C4 (left minus right). Correct labels
                      predict both distributions shift negative.
+  ranking_stability.png
+                     From stability.json (python -m src.stability): for
+                     k = 4, 8, 16, how often each channel is in the top-k
+                     under bootstrap resampling of train subjects (bars) and
+                     in an individual subject's own top-k (dots). Frozen-set
+                     members are highlighted.
 
 Requires matplotlib (not in the pinned requirements.txt; install with
 .venv/bin/pip install matplotlib).
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -22,6 +29,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -29,6 +38,10 @@ from src.loader import load_subject
 from src.utils import REPO_ROOT, data_root, load_config
 
 FIG_DIR = REPO_ROOT / "figures"
+STABILITY_PATH = REPO_ROOT / "stability.json"
+
+# Two categorical hues (frozen-set vs per-subject) plus a recessive gray.
+BLUE, ORANGE, GRAY = "#2a78d6", "#eb6834", "#b8b7b2"
 
 
 def sample_trials_figure(config: dict) -> None:
@@ -89,6 +102,65 @@ def erd_check_figure(config: dict) -> None:
     print("C4 suppression during left-fist imagery:  {}/{} subjects".format(int((d_c4 < 0).sum()), n))
 
 
+def stability_figure(panels=(4, 8, 16)) -> None:
+    with open(STABILITY_PATH) as f:
+        st = json.load(f)
+    shared = st["shared_ranked"]
+
+    fig, axes = plt.subplots(1, len(panels), figsize=(5 * len(panels), 6.5))
+    for ax, k in zip(axes, panels):
+        boot = st["bootstrap_topk_frequency"][str(k)]
+        own = st["per_subject"][str(k)]["frequency"]
+        overlap = st["per_subject"][str(k)]["overlap"]
+        frozen = set(shared[:k])
+        # Channels worth showing: the frozen set plus anything that competes
+        # for a slot, sorted by bootstrap frequency; capped at 2k rows.
+        chans = sorted(boot, key=lambda c: (-boot[c], shared.index(c)))
+        chans = [c for c in chans if c in frozen or boot[c] >= 0.05][: 2 * k]
+        ypos = np.arange(len(chans))[::-1]
+
+        ax.barh(
+            ypos, [boot[c] for c in chans], height=0.62,
+            color=[BLUE if c in frozen else GRAY for c in chans], edgecolor="none",
+        )
+        ax.plot([own[c] for c in chans], ypos, linestyle="none", marker="o",
+                markersize=5, color=ORANGE, markeredgecolor="white", markeredgewidth=0.8)
+        # Chance level for the per-subject dots: a random top-k contains a
+        # given channel with probability k / n_channels.
+        chance = k / float(len(shared))
+        ax.axvline(chance, color=ORANGE, lw=1, ls="--", alpha=0.8)
+        ax.text(chance, len(chans) - 0.4, " chance {:.2f}".format(chance),
+                color=ORANGE, fontsize=7, va="bottom", ha="left")
+        ax.set_yticks(ypos)
+        ax.set_yticklabels(chans, fontsize=8)
+        ax.set_xlim(0, 1.0)
+        ax.set_xlabel("Frequency")
+        ax.set_title(
+            "k = {}   (personal/shared overlap: mean {:.2f}, min {:.2f})".format(
+                k, overlap["mean"], overlap["min"]),
+            fontsize=10,
+        )
+        ax.grid(axis="x", alpha=0.3)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+
+    handles = [
+        Patch(color=BLUE, label="frozen top-k: share of bootstrap resamples selecting it"),
+        Patch(color=GRAY, label="other channel: share of bootstrap resamples selecting it"),
+        Line2D([], [], linestyle="none", marker="o", color=ORANGE,
+               label="share of train subjects with it in their OWN top-k"),
+    ]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8, frameon=False)
+    fig.suptitle(
+        "Channel-selection stability: {} bootstrap resamples of {} train subjects".format(
+            st["n_bootstrap"], st["n_train_subjects"]),
+        fontsize=12,
+    )
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.savefig(FIG_DIR / "ranking_stability.png", dpi=130)
+    plt.close(fig)
+
+
 def main() -> None:
     FIG_DIR.mkdir(exist_ok=True)
     config = load_config()
@@ -96,6 +168,11 @@ def main() -> None:
     erd_check_figure(config)
     print("Wrote {}".format(FIG_DIR / "sample_trials.png"))
     print("Wrote {}".format(FIG_DIR / "erd_check.png"))
+    if STABILITY_PATH.exists():
+        stability_figure()
+        print("Wrote {}".format(FIG_DIR / "ranking_stability.png"))
+    else:
+        print("Skipping ranking_stability.png: run `python -m src.stability` first")
 
 
 if __name__ == "__main__":

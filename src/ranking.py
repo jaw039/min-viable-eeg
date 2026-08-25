@@ -66,8 +66,13 @@ def aggregate_ranking(
     return [ch_names[i] for i in order], scores[order]
 
 
-def compute_ranking(config: dict) -> Tuple[List[str], np.ndarray, List[int]]:
-    """Rank channels using cached epochs of the TRAIN split only."""
+def train_subject_scores(config: dict) -> Tuple[np.ndarray, List[str], List[int]]:
+    """Per-subject Fisher scores for the TRAIN split only.
+
+    Returns (scores (n_train_subjects, n_channels) float64, ch_names,
+    train_subject_ids). Shared by the ranking and the stability check so both
+    see exactly the same per-subject numbers.
+    """
     with open(SPLITS_PATH) as f:
         train_subjects = json.load(f)["train"]
 
@@ -85,8 +90,14 @@ def compute_ranking(config: dict) -> Tuple[List[str], np.ndarray, List[int]]:
         if X.shape[1] != len(ch_names):
             raise ValueError("S{:03d} cache has {} channels".format(subject, X.shape[1]))
         per_subject.append(fisher_scores(X, y))
-    ranked, scores = aggregate_ranking(per_subject, ch_names)
-    return ranked, scores, train_subjects
+    return np.stack(per_subject, axis=0), ch_names, train_subjects
+
+
+def compute_ranking(config: dict) -> Tuple[List[str], np.ndarray, List[int]]:
+    """Rank channels using cached epochs of the TRAIN split only."""
+    scores, ch_names, train_subjects = train_subject_scores(config)
+    ranked, agg = aggregate_ranking(list(scores), ch_names)
+    return ranked, agg, train_subjects
 
 
 def write_ranking(config: dict, out_path: Path = RANKING_PATH) -> None:
