@@ -4,7 +4,17 @@ determinism, train-only leakage guard, and budget selection."""
 import numpy as np
 import pytest
 
-from src.budget import apply_budget, reduce_channels, top_k_channels
+import json
+
+from src.budget import (
+    BUDGETS_PATH,
+    RANKING_PATH,
+    apply_budget,
+    budget_sets,
+    reduce_channels,
+    top_k_channels,
+    write_budgets,
+)
 from src.ranking import aggregate_ranking, fisher_scores, write_ranking
 from src.utils import load_config
 
@@ -118,3 +128,44 @@ def test_write_ranking_refuses_overwrite(tmp_path):
     out.write_text("{}")
     with pytest.raises(SystemExit):
         write_ranking(CFG, out)
+
+
+def test_budget_sets_are_ranking_prefixes_in_both_orders():
+    ranked = ["E", "B", "F", "A", "C", "D"]
+    sets = budget_sets(ranked, CH, [1, 2, 4, 6])
+    assert list(sets) == ["1", "2", "4", "6"]
+    for k, entry in sets.items():
+        k = int(k)
+        assert entry["k"] == k
+        assert entry["ranking_order"] == ranked[:k]  # best-first prefix
+        assert set(entry["montage_order"]) == set(ranked[:k])
+        # montage_order follows CH, the order reduce_channels emits data in
+        assert entry["montage_order"] == [c for c in CH if c in ranked[:k]]
+    assert sets["6"]["montage_order"] == CH  # full budget is the identity
+
+
+def test_write_budgets_refuses_overwrite(tmp_path):
+    out = tmp_path / "budgets.json"
+    out.write_text("{}")
+    with pytest.raises(SystemExit):
+        write_budgets(CFG, RANKING_PATH, out)
+
+
+@pytest.mark.skipif(
+    not (BUDGETS_PATH.exists() and RANKING_PATH.exists()),
+    reason="committed budgets.json / channel_ranking.json not present",
+)
+def test_committed_budgets_match_committed_ranking():
+    """The frozen budget sets must be exactly what the frozen ranking implies,
+    for every budget in config. Guards against the two files drifting apart."""
+    with open(RANKING_PATH) as f:
+        ranked = json.load(f)["channels"]
+    with open(BUDGETS_PATH) as f:
+        budgets = json.load(f)
+    assert budgets["budgets"] == CFG["budgets"]
+    assert budgets["reduction_mode"] == CFG["reduction_mode"]
+    for k in CFG["budgets"]:
+        entry = budgets["sets"][str(k)]
+        assert entry["ranking_order"] == ranked[:k]
+        assert sorted(entry["montage_order"]) == sorted(ranked[:k])
+        assert len(set(entry["montage_order"])) == k
