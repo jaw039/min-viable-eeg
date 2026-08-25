@@ -136,6 +136,59 @@ should be stated when reporting "minimum electrodes for motor imagery".
 The ranking method is frozen; a bootstrap stability check over train
 subjects is the natural follow-up, not a method change.
 
+## Session 5 — channel-stability check (commit b8b88b9)
+
+Week 2 task ("do the same electrodes remain important across repeated runs
+or subjects") and the Week 3 subject-specific vs shared-montage analysis,
+done together because they share one code path.
+
+- `src/stability.py` (`python -m src.stability`, deterministic: 200
+  bootstrap resamples of the 74 train subjects, seed 42) writes
+  `stability.json`; `scripts/make_figures.py` renders
+  `figures/ranking_stability.png`. Train split only. Nothing frozen changes.
+- **Bootstrap view** — how often a channel is in the recomputed shared
+  top-k when the training subjects are resampled:
+
+| k | frozen set: bootstrap inclusion frequency | strongest outside competitors |
+|---|---|---|
+| 4 | C4 **0.85**, C6 0.58, CP4 0.57, CP6 0.50 | F7 0.34, PO7 0.24, AF7 0.23 |
+| 8 | C4 **0.93**, CP4 0.76, CP6 0.74, C6 0.71, FC4 0.56, F7 0.50, C2 0.43, AF7 0.40 | PO7 0.47, P5 0.37, O1 0.35 |
+| 16 | C4 **0.97**, CP6 0.92, CP4 0.89, C6 0.84, PO7 0.83 … P4 0.43 | CP3 0.47, CP5 0.42, P7 0.40 |
+| 32 | all ≥ 0.55; C3 0.94 | — |
+
+- **Per-subject view** — rank each subject from its own Fisher scores;
+  compare to the shared top-k (chance level for a channel being in a random
+  top-k is k/64):
+
+| k | mean overlap with shared set | subjects with zero overlap | C4 in own top-k (chance) | most-selected per subject |
+|---|---|---|---|---|
+| 4 | 0.12 | 52 / 74 | 0.15 (0.06) | PO7 0.19, O1 0.18, F7 0.16 |
+| 8 | 0.18 | 22 / 74 | 0.18 (0.13) | F7 0.27, O1 0.27, CP4 0.23 |
+| 16 | 0.31 | 1 / 74 | 0.27 (0.25) | FT7 0.43, PO3 0.41, O1 0.41 |
+| 32 | 0.52 | 0 / 74 | 0.53 (0.50) | — |
+
+**What this means.**
+
+1. *C4 is the only robustly selected small-k electrode.* At k=4 it is
+   chosen in 85% of resamples; the other three frozen members (C6, CP4,
+   CP6) are chosen ~50–58% of the time and are roughly interchangeable
+   with F7/PO7/AF7. The frozen k=4 set is legitimate (it is the ranking on
+   the actual train split) but should be described as "C4 plus three
+   right-centroparietal neighbours", not as a uniquely determined montage.
+   Expect the selected-vs-random gap at k=4 to come mostly from C4.
+2. *The shared montage is a poor fit to individuals.* 52 of 74 train
+   subjects have none of the shared top-4 in their personal top-4, and C4
+   sits at chance in personal top-16s. Caveat: each subject's own ranking
+   comes from only ~45 trials, so personal top-k lists are noisy and the
+   low overlap mixes true heterogeneity with estimation noise; this
+   analysis cannot separate the two. It does support the paper's
+   subject-specific-montage discussion point.
+3. *Non-motor channels recur.* PO7/O1/PO3 (occipital) and F7/FT7/AF7
+   (frontal-temporal) lead the per-subject selections and compete for
+   shared slots, strengthening the Session 4 caveat that part of the
+   discriminative signal may be lateralized gaze/attention rather than
+   motor ERD.
+
 ## Next steps
 
 - Repo migration: DONE — `origin` now points at
@@ -143,11 +196,13 @@ subjects is the natural follow-up, not a method change.
   locally, so pushes can no longer reach github.ibm.com. The accidental
   repo at github.ibm.com/JackieWang/min-viable-eeg still exists on IBM's
   side (initial commit only) — delete via its web UI Settings if desired.
-- Pipeline scope (loader, splits, normalization, cache, ranking, budgets):
-  COMPLETE and frozen. Downstream consumers: `splits.json`,
-  `channel_ranking.json`, `budgets.json`, `data/processed/S###/{X,y}.npy`.
-- Optional robustness: bootstrap the 74 train subjects and report top-k
-  membership frequency; per-subject vs shared-montage overlap table
-  (mentor request). Neither changes the frozen sets.
+- Pipeline scope (loader, splits, normalization, cache, ranking, budgets,
+  stability): COMPLETE and frozen. Downstream consumers: `splits.json`,
+  `channel_ranking.json`, `budgets.json`, `data/processed/S###/{X,y}.npy`;
+  `stability.json` + `figures/ranking_stability.png` for Results.
+- Writing: Conclusion skeleton (Week 2), Abstract + Conclusion revision
+  (Week 3, blocked on final numbers).
+- Week 3 reproducibility audit of reported selected-channel models:
+  blocked on Jahari's runs.
 - Open decision to confirm with Kiran: `reduction_mode: reduce` (physical
   channel subsetting) is in config.yaml but not in the locked protocol list.
