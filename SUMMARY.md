@@ -93,6 +93,49 @@ for S104), but the covering test is still to be written.
   recovery, determinism, train-only leakage guard, selection correctness,
   budget validation, overwrite refusal. Full suite: 28 passing.
 
+## Session 4 — ranking verification + frozen budget sets (commits 3c7a2af..b1be5db)
+
+Week 3 task: "verify the final electrode ranking and provide the exact
+selected channel sets used at each budget so every experiment is
+reproducible."
+
+- **Ranking verified reproducible.** `channel_ranking.json` was regenerated
+  from a clean checkout and compared to the committed file: channel order
+  and all 64 Fisher scores byte-identical (max |Δ| = 0.0). The old file's
+  provenance read `ac98052-dirty` (generated before `src/ranking.py` was
+  committed); the regenerated file (5e0fbda) is stamped with clean commit
+  `3c7a2af`.
+- **Provenance fix (3c7a2af).** `get_git_commit()` marked the tree dirty
+  whenever `git status` was non-empty — which regenerating a tracked
+  generated-once file always is. Writers now pass their own output path as
+  `ignore_paths`, so only unrelated changes count as dirty.
+- **`budgets.json` (committed, generated once via `python -m src.budget`).**
+  Exact channel set for every budget, in ranking order (best-first) and
+  montage order (the order `reduce_channels` emits data). Stamped with its
+  own provenance plus the ranking's. `test_committed_budgets_match_committed_ranking`
+  guards the two files against drift. Full suite: 31 passing.
+
+| k | channels added (ranking order, cumulative) |
+|---|---|
+| 4 | C4, CP4, C6, CP6 |
+| 6 | + FC4, F7 |
+| 8 | + C2, AF7 |
+| 12 | + PO7, O1, P5, PO3 |
+| 16 | + CP2, P6, F8, P4 |
+| 32 | + CP3, CP5, FC2, P7, FC6, P3, C3, P8, O2, TP8, Iz, PO4, Fp1, F4, Oz, PO8 |
+| 64 | all |
+
+**Caveat for interpretation.** C3 (left motor cortex) enters only at rank
+23, so no budget ≤ 16 contains it, and several non-motor channels (F7, AF7,
+PO7, O1) outrank it. The C4-side asymmetry is real (the contralateral ERD
+check in `figures/erd_check.png` shows the C4 effect ≈ 2× C3), but the
+frontal/occipital channels in the top 12 may reflect lateralized
+gaze/attention correlates of the cue rather than motor ERD. This does not
+affect the decoding objective (any class-discriminative channel counts) but
+should be stated when reporting "minimum electrodes for motor imagery".
+The ranking method is frozen; a bootstrap stability check over train
+subjects is the natural follow-up, not a method change.
+
 ## Next steps
 
 - Repo migration: DONE — `origin` now points at
@@ -100,7 +143,11 @@ for S104), but the covering test is still to be written.
   locally, so pushes can no longer reach github.ibm.com. The accidental
   repo at github.ibm.com/JackieWang/min-viable-eeg still exists on IBM's
   side (initial commit only) — delete via its web UI Settings if desired.
-- Deferred review fixes (test coverage) listed above.
-- Remaining pipeline scope: channel ranking and reduced-channel budget
-  utility (budgets 4/6/8/12/16/32/64; headline = smallest k with
-  κ_k/κ_full ≥ 0.90).
+- Pipeline scope (loader, splits, normalization, cache, ranking, budgets):
+  COMPLETE and frozen. Downstream consumers: `splits.json`,
+  `channel_ranking.json`, `budgets.json`, `data/processed/S###/{X,y}.npy`.
+- Optional robustness: bootstrap the 74 train subjects and report top-k
+  membership frequency; per-subject vs shared-montage overlap table
+  (mentor request). Neither changes the frozen sets.
+- Open decision to confirm with Kiran: `reduction_mode: reduce` (physical
+  channel subsetting) is in config.yaml but not in the locked protocol list.
