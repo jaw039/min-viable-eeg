@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "git_commit": "ac98052e0eb880814d3598f1c5b466546aad8ee1-dirty",
+    "git_commit": "3c7a2af197d2940d24e301789abd53b78f4c3c9b",
     "config_hash": "f31815c177f9",
-    "generated_utc": "2026-08-18T00:27:32+00:00"
+    "generated_utc": "2026-08-25T00:26:44+00:00"
   },
   "method": "fisher_log_bandpower_subject_mean",
   "band_hz": [
