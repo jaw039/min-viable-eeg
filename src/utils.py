@@ -4,7 +4,7 @@ import hashlib
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 import yaml
 
@@ -37,16 +37,30 @@ def edf_path(config: dict, subject: int, run: int) -> Path:
     )
 
 
-def get_git_commit() -> str:
+def get_git_commit(ignore_paths: Sequence[PathLike] = ()) -> str:
+    """HEAD commit hash, suffixed '-dirty' if the working tree has changes.
+
+    ignore_paths: tracked files whose modification/deletion should NOT count
+    as dirty. Generated-once outputs (splits.json, channel_ranking.json) pass
+    their own path here, since regenerating them necessarily touches the
+    tracked file and would otherwise stamp every regeneration as dirty.
+    """
     try:
         commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True
         ).strip()
-        dirty = subprocess.check_output(
+        status = subprocess.check_output(
             ["git", "status", "--porcelain"], cwd=REPO_ROOT, text=True
-        ).strip()
+        )
+        ignored = {
+            Path(p).resolve().relative_to(REPO_ROOT).as_posix() for p in ignore_paths
+        }
+        dirty = [
+            line for line in status.splitlines()
+            if line.strip() and line[3:].strip() not in ignored
+        ]
         return commit + "-dirty" if dirty else commit
-    except (subprocess.CalledProcessError, OSError):
+    except (subprocess.CalledProcessError, OSError, ValueError):
         return "unknown"
 
 
@@ -56,9 +70,11 @@ def config_hash(path: Optional[PathLike] = None) -> str:
     return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
 
 
-def provenance(config_path: Optional[PathLike] = None) -> dict:
+def provenance(
+    config_path: Optional[PathLike] = None, ignore_paths: Sequence[PathLike] = ()
+) -> dict:
     return {
-        "git_commit": get_git_commit(),
+        "git_commit": get_git_commit(ignore_paths),
         "config_hash": config_hash(config_path),
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }

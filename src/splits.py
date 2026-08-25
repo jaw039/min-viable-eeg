@@ -45,7 +45,7 @@ def write_splits(config: dict, out_path: Path = SPLITS_PATH) -> None:
         raise SystemExit(1)
     splits = make_splits(config)
     payload = {
-        "provenance": provenance(),
+        "provenance": provenance(ignore_paths=[out_path]),
         "strategy": config["splits"]["strategy"],
         "seed": config["splits"]["seed"],
         "ratios": config["splits"]["ratios"],

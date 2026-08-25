@@ -98,7 +98,7 @@ def write_ranking(config: dict, out_path: Path = RANKING_PATH) -> None:
         raise SystemExit(1)
     ranked, scores, train_subjects = compute_ranking(config)
     payload = {
-        "provenance": provenance(),
+        "provenance": provenance(ignore_paths=[out_path]),
         "method": METHOD,
         "band_hz": config["preprocess"]["bandpass"],
         "n_train_subjects": len(train_subjects),
