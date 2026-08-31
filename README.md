@@ -404,4 +404,3 @@ Architecture:
 > B.J. (2018). EEGNet: A Compact Convolutional Neural Network for EEG-based
 > Brain-Computer Interfaces. *Journal of Neural Engineering*, 15(5), 056013.
 
-This project: citation placeholder — add once the paper has a venue.
