@@ -16,7 +16,27 @@ splits:
   ratios: [0.7, 0.15, 0.15]
   seed: 42
 budgets: [4, 6, 8, 12, 16, 32, 64]
-reduction_mode: reduce    # reduce | mask
+reduction_mode: reduce    # reduce | mask   [UNRESOLVED: not on the locked protocol list]
 eval:
   primary_metric: cohen_kappa
   threshold: 0.90
+  threshold_sensitivity: [0.85, 0.90, 0.95]
+model:
+  n_samples: 641
+  n_classes: 2
+  dropout: 0.5
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  max_epochs: 100
+  patience: 10
+  # Early stopping uses an inner subset of the TRAINING subjects, so the
+  # validation split is reserved for choosing k* and the two selections
+  # never share data.
+  inner_val_frac: 0.15
+distillation:
+  alpha: 0.5
+  temperature: 4.0
+sweep:
+  train_seeds: [42, 123, 456, 789, 101112]
+  n_random_subsets: 20

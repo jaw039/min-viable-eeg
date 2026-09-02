@@ -1,6 +1,7 @@
 """Shared utilities: config loading, data paths, and provenance (git commit + config hash)."""
 
 import hashlib
+import json
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -68,6 +69,23 @@ def config_hash(path: Optional[PathLike] = None) -> str:
     # Hash the raw file bytes: canonical and independent of dict ordering.
     config_path = Path(path) if path is not None else DEFAULT_CONFIG_PATH
     return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
+
+
+# The config sections the frozen artifacts actually depend on. Training
+# hyperparameters (learning rate, epochs, batch size) do not change what
+# splits.json, channel_ranking.json, budgets.json or stability.json contain, so
+# adding them must not read as protocol drift. `config_hash` hashes the whole
+# file and moves when anything changes; `protocol_hash` moves only when a
+# decision that would invalidate a frozen artifact changes.
+PROTOCOL_KEYS = ("dataset", "preprocess", "splits", "budgets", "reduction_mode")
+
+
+def protocol_hash(path: Optional[PathLike] = None) -> str:
+    """Hash of only the protocol-relevant config, canonically serialised."""
+    cfg = load_config(path)
+    subset = {k: cfg[k] for k in PROTOCOL_KEYS if k in cfg}
+    blob = json.dumps(subset, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(blob).hexdigest()[:12]
 
 
 def provenance(

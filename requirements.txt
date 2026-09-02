@@ -1,5 +1,14 @@
+# Pins matter here. mne 1.8.0 imports scipy.special.sph_harm, which newer
+# scipy removed, so an unpinned install fails at `import mne`.
 mne==1.8.0
 numpy==2.0.2
 scipy==1.13.1
 PyYAML==6.0.2
 pytest==8.3.5
+scikit-learn==1.5.2
+
+# torch is deliberately a floor, not a pin: Kaggle and Colab ship their own
+# build matched to the host CUDA, and forcing a reinstall there is slow and
+# often breaks the GPU. The runner records the actual version in every result
+# row (`environment`), so what ran is always recoverable.
+torch>=2.0
