@@ -103,7 +103,7 @@ graph TD
 | **Ranked** | Frozen top-k from `budgets.json` | The headline arm |
 | **Random** | 20 seeded random subsets per budget | Volume conduction predicts a spread random subset is already a strong baseline; "informed beats random" must be won, not assumed |
 | **Sensorimotor** | Frozen ranking restricted to a declared 17-electrode strip | Tests whether the signal is motor ERD or cue-correlated — see below |
-| **Distillation** | scratch / distill / shuffled-teacher | Extension. Not wired; see status |
+| **Distillation** | scratch / distill / shuffled-teacher | Extension. A gain over scratch only means transfer if it does *not* also appear against a teacher trained on shuffled labels |
 
 The sensorimotor arm exists because of a real finding in `stability.json`. In
 the unrestricted ranking, C3 — the canonical left motor electrode — does not
@@ -148,7 +148,17 @@ overwrite; regenerating requires deleting the file by hand.
 | `stability.json` | Bootstrap inclusion frequency and per-subject overlap |
 
 Each carries its own provenance (git commit, config hash, UTC timestamp). All
-four currently agree on config hash — no drift.
+four agree with each other, and `tests/test_protocol_integrity.py` checks their
+*contents* against the config the runner reads — splits against the split
+config, budgets against `budgets` and `reduction_mode`, the ranking band
+against the bandpass.
+
+Their recorded `config_hash` predates the training hyperparameters
+(`model`, `training`, `distillation`, `sweep`) that the runner needs, so it no
+longer equals the current whole-file hash. That is expected and not drift: none
+of those keys can change what a frozen artifact contains. `protocol_hash()`
+covers only the sections that could — `dataset`, `preprocess`, `splits`,
+`budgets`, `reduction_mode` — and is the value to watch.
 
 Every result row records the git commit, config hash, exact channel list,
 training seed, selection seed, split, runtime and environment. The manifest is
@@ -175,7 +185,6 @@ src/
   kstar.py       k* selection — validation only, by construction
   analysis.py    Stability, ranked-vs-random, follow-up conditions, coverage
   manifest.py    Condition matrix and deterministic sharding
-  protocol.py    Methods generator (reads the config the code uses)
 
 scripts/
   download_data.py       Fetch EDFs from PhysioNet
@@ -186,7 +195,6 @@ scripts/
 paper/
   conclusion.md          Draft (placeholders pending results)
   future_work.md         Extensions
-  methods_generated.md   Generated — do not edit by hand
 ```
 
 ## Quick start
@@ -197,7 +205,7 @@ cd min-viable-eeg
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-pytest -q                              # 78 passed, 6 skipped (data-dependent)
+pytest -q                              # 199 passed, 6 skipped
 
 python scripts/download_data.py        # EDFs from PhysioNet
 python -m src.inventory                # verify 160 Hz / 64 ch per file
@@ -206,29 +214,47 @@ python scripts/cache_preprocessed.py   # → data/processed/
 python scripts/run_sweep.py --smoke-test   # one k=8 val row, few epochs
 ```
 
-Then the sweep:
+Then the sweep. **Validation first, all of it, before test is touched at all.**
 
 ```bash
-# Full montage first — κ_full is the denominator for everything else
-for s in 42 123 456 789 101112; do
-  python scripts/run_sweep.py --budget 64 --selection ranked --train-seed $s --split val
-  python scripts/run_sweep.py --budget 64 --selection ranked --train-seed $s --split test
-done
+# Pre-sweep anchors: does the instrument demonstrably work?
+python scripts/run_anchors.py --out results/anchor_report.json
 
-# Or the whole matrix, sharded
-python scripts/run_sweep.py --write-manifest       # 360 conditions
+# 1. Validation manifest and sweep (sharded across machines)
+python scripts/run_sweep.py --write-manifest       # validation conditions
 python scripts/run_sweep.py --manifest --shard-id 0 --num-shards 4
 
-# Analysis
-python scripts/analyze.py --results results/*.jsonl
-python scripts/analyze.py --results results/*.jsonl --emit-followup
+# 2. Validation analysis -> writes results/kstar_report.json
+python scripts/analyze.py --results 'results/*.jsonl'
+
+# 3. Read k* off that report. Then build the RESTRICTED confirmatory
+#    test manifest -- ranked/scratch at k* and the 64-channel reference only.
+python scripts/run_sweep.py --write-test-manifest --kstar 8 \
+    --kstar-report results/kstar_report.json
+
+# 4. Inspect it before spending compute
+cat manifests/manifest_test.jsonl
+
+# 5. Run the confirmatory conditions, then report once
+python scripts/run_sweep.py --manifest --split test --shard-id 0 --num-shards 1
+python scripts/analyze.py --results 'results/*.jsonl' --test-report
 ```
+
+The test manifest is built by a different command from the validation manifest,
+on purpose. `--write-manifest --split test` used to produce the entire control
+matrix — random subsets, sensorimotor, distillation, shuffled teacher, label
+shuffle — on the split reserved for reporting. That command now exits with a
+pointer to `--write-test-manifest`, which emits only ranked/scratch rows at k\*
+plus the full-montage reference, refuses to run without an explicit `--kstar`,
+and rejects a k\* that was never swept.
 
 Do not change `config.yaml` between the full-montage runs and the reduced-budget
 runs. Every ratio in the paper divides by κ_full, and a config change mid-sweep
 makes those ratios incomparable.
 
 ## Running on Kaggle
+
+Step-by-step runbook: [KAGGLE.md](KAGGLE.md). Summary:
 
 The runner detects `/kaggle/working` and writes there; nothing is hard-coded to
 a user directory.
@@ -299,7 +325,7 @@ nobody.
 
 ## Tests
 
-`pytest -q` → **78 passed, 6 skipped** (skips are data-dependent loader tests).
+`pytest -q` → **199 passed, 6 skipped**. The 6 skips are the data-dependent cases in `tests/test_loader.py`, which need the PhysioNet EDFs on disk; they skip with "data missing — run scripts/download_data.py first". Nothing in the experiment path (cache → runner → analysis) requires them.
 
 Some of these are ordinary correctness tests. Others exist because failing them
 silently would invalidate the study:
@@ -321,30 +347,41 @@ silently would invalidate the study:
 
 **Implemented and tested.** Preprocessing, splits, normalisation, caching,
 channel ranking, budget freezing, stability analysis, channel selection
-(all three modes), EEGNet, training loop, runner, manifest and sharding, k\*
-selection, post-sweep analysis, Methods generation.
+(all three modes) with its drift guard, EEGNet, training loop with inner-split
+early stopping, distillation, the runner, manifest and sharding, k\* selection,
+and post-sweep analysis.
 
-**Verified on synthetic data only.** The runner has been exercised end to end
-against a synthetic cache with the real montage and shapes: ranked k=8 emitted
-exactly the frozen `budgets.json` channel set, and a random subset excluding C4
-scored ~0 where a set containing the planted signal scored 1.0, proving channel
-selection genuinely gates model input. The analysis layer was exercised on
-fabricated result rows. **None of these numbers are science.**
+**Not implemented.** Methods generation (`src/protocol.py`). The Methods
+section is written by hand for now; there is no generator, and nothing in the
+repo emits `paper/methods_generated.md`.
+
+**Verified on synthetic data only.** The whole path — `run_sweep.py
+--write-manifest`, four shards, then `analyze.py` — was exercised against a
+synthetic cache built with the real montage, the real 74/16/16 split and a
+class-dependent signal planted on C4 alone. Ranked k=8 emitted exactly the
+frozen `budgets.json` set; ranked and sensorimotor arms scored κ = 1.00 while
+random subsets excluding C4 scored ≈ 0, which is what proves channel selection
+genuinely gates model input. Two guards fired on their own: the drift guard
+against a corrupted `budgets.json`, and `select_kstar` refusing to compute a
+ratio when the synthetic full-montage run produced a non-positive κ_full.
+**None of these numbers are science.**
 
 **Pending compute.** Every experimental condition. No κ value from real EEG
-exists in this repository. The 360-condition manifest has been generated but
-not executed.
+exists in this repository. The 691-condition manifest is committed at
+`manifests/manifest_val.jsonl` but has not been executed.
 
-**Optional extension, not wired.** Distillation. `run_condition()` raises
-`NotImplementedError` for `training != "scratch"` rather than silently
-no-opping. `scripts/validate_distillation.py` is empty. The committed
-`checkpoints/teacher_64ch.pt` was produced by a debug run on 3 training
-subjects, not the 74-subject split — it should be deleted, not reused.
+**Wired but unvalidated on real data.** Distillation runs (`--training distill`)
+and so does its control (`--training distill_shuffled_teacher`), which distils
+from a teacher trained on permuted labels. Soft targets regularise regardless
+of what the teacher knows, so a gain over scratch only supports "knowledge
+transfer" if it does *not* also appear against that sham teacher; `analyze.py`
+reports both and says which reading the numbers support. Teachers are trained
+per seed and cached; no pre-trained checkpoint is committed or reused.
 
 **Unresolved.** `reduction_mode: reduce` is in the config but not on the locked
-protocol list. The 17-electrode sensorimotor pool is a proposal awaiting
-sign-off. Both print as `[UNRESOLVED]` in generated Methods rather than as
-settled sentences.
+protocol list. The 17-electrode sensorimotor pool declared in `src/channels.py`
+is a proposal awaiting sign-off. Both are marked `[UNRESOLVED]` where they
+appear, and should be settled before Methods is written.
 
 ## Limitations
 
@@ -384,8 +421,9 @@ Any reported number traces back through its result row:
 
 For a k\* claim specifically: `kstar_report.json` records the validation budget
 curve it was chosen from, the per-seed k\* values, the threshold sensitivity,
-and the stability verdict. Regenerate Methods with `python -m src.protocol` and
-confirm the coverage report shows the conditions that actually ran.
+and the stability verdict. Check the coverage report in the same file to
+confirm which conditions actually ran, and write Methods against that rather
+than against the manifest.
 
 ## Citation
 
@@ -403,4 +441,3 @@ Architecture:
 > Lawhern, V.J., Solon, A.J., Waytowich, N.R., Gordon, S.M., Hung, C.P., Lance,
 > B.J. (2018). EEGNet: A Compact Convolutional Neural Network for EEG-based
 > Brain-Computer Interfaces. *Journal of Neural Engineering*, 15(5), 056013.
-
