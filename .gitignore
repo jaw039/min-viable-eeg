@@ -5,6 +5,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
-results/
+
+# Generated at run time. The provenance-stamped result rows in results/*.jsonl
+# ARE tracked: they are the evidence behind every number in the paper.
+results/single.jsonl
 teachers/
 kstar_report.json
+dist/
