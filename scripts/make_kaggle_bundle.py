@@ -1,6 +1,6 @@
 """Build the two zip files the Kaggle sweep runs from.
 
-    dist/mve-code/code.zip               git archive of HEAD, files at the zip root
+    dist/mve-code/code.zip               git archive of HEAD + COMMIT, files at the zip root
     dist/mve-eegmmidb-cache/cache.zip    processed/S###/{X,y}.npy and
                                          {splits,channel_ranking,budgets}.json at the root
 
@@ -61,9 +61,12 @@ def build_code(out: Path, owner: str, allow_dirty: bool) -> Path:
     folder = out / "mve-code"
     folder.mkdir(parents=True, exist_ok=True)
     zip_path = folder / "code.zip"
-    subprocess.check_call(["git", "archive", "--format=zip",
+    # COMMIT goes inside the zip too: the snapshot has no .git, so the runner
+    # stamps rows from this file (src.utils.get_git_commit).
+    commit_file = folder / "COMMIT"
+    commit_file.write_text(head + "\n")
+    subprocess.check_call(["git", "archive", "--format=zip", "--add-file=" + str(commit_file),
                            "-o", str(zip_path), "HEAD"], cwd=REPO_ROOT)
-    (folder / "COMMIT").write_text(head + "\n")
     metadata(folder, "mve-code", owner)
     print("code   : {}  commit {}".format(zip_path, head))
     return zip_path

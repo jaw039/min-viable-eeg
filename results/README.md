@@ -51,13 +51,17 @@ its uncertainty is the result, not the integer.
 
 ## Test split
 
-Not run. `manifests/manifest_test.jsonl` was written from the validation
-report: k\* = 32 and the 64-channel reference, ranked, scratch, at all five
-seeds (10 conditions). Running it needs a new code-dataset version built
-from the merged commit (`make kaggle-bundle`), and one Kaggle Version with
-`SPLIT = "test"` and `KSTAR = 32` in the notebook's configuration cell;
-the notebook checks the validation report before writing the manifest. It
-will be recorded here with the same fields:
+`manifests/manifest_test.jsonl` was written from the validation report:
+k\* = 32 and the 64-channel reference, ranked, scratch, at all five seeds
+(10 conditions). It runs as one Kaggle Version with `SPLIT = "test"` and
+`KSTAR = 32` in the notebook's configuration cell; the notebook checks the
+validation report before writing the manifest. Every attempt is listed.
+
+| Attempt | Kaggle version | Date (UTC) | Code dataset | GPU | Outcome |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Version 8 | 2026-09-08, 18:55–18:57 | `mve-code` v4 (commit `8f91320`) | Tesla P100 | failed before any metric: the image's torch 2.10 cu128 build has no kernels for the P100 (sm_60); 10 error rows, discarded, not in `results/` |
+
+The successful run will be recorded here with the validation shards' fields:
 
 ```bash
 python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json

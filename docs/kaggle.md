@@ -71,7 +71,9 @@ That writes `manifests/manifest_val.jsonl` — 691 conditions at the configured
 1. New Notebook → upload `notebooks/kaggle_sweep.ipynb`.
 2. Settings pane:
    - **Accelerator → GPU T4 ×2.** T4 ×2 and P100 draw from the same 30-hour
-     meter, so T4 ×2 gives two GPUs per quota-hour.
+     meter, so T4 ×2 gives two GPUs per quota-hour. The P100 is not usable
+     at all: the image's torch build (2.10, cu128) has no kernels for its
+     sm_60 architecture, and the notebook's environment check stops on it.
    - **Environment → Original.** "Latest" silently upgrades packages
      mid-project, and `mne==1.8.0` breaks against newer scipy.
    - Internet on (only needed if cloning with a token).
@@ -152,6 +154,10 @@ validation.
   ends — which is why the runner is resumable.
 - **No shell.** Prefix shell commands with `!` in a cell.
 - **Changing the accelerator restarts the session** and clears your variables.
+- **A P100 session fails every condition** with `CUDA error: no kernel image
+  is available` (torch 2.10 cu128 dropped sm_60). The environment check cell
+  stops before the sweep. A `kaggle kernels push` without
+  `--accelerator NvidiaTeslaT4` is scheduled on a P100.
 - **Do not edit `config.yaml` mid-sweep.** Every ratio in the paper divides by
   κ_full; a config change between the full-montage runs and the reduced-budget
   runs makes those ratios incomparable. The config hash in each row will show
@@ -220,9 +226,24 @@ python scripts/analyze.py --results 'results/*.jsonl'
 ```
 
 The notebook in this repository matches the current layout (`artifacts/`).
-`mve-code` v1 predates that move, so all four validation shards run from
-v1 unchanged; a later run (the test split) needs a new dataset version
-built with `scripts/make_kaggle_bundle.py --code` from the merged commit.
+`mve-code` v1 predates that move, so all four validation shards ran from
+v1 unchanged. The test split runs from a later version built with
+`scripts/make_kaggle_bundle.py --code` (v4 = commit `8f91320`; v2 and v3
+are mis-packed uploads nothing uses). From v5 on the zip carries a `COMMIT`
+file, so rows stamp the commit; v1 rows stamp `unknown`.
+
+Launching a run from the command line (how the test split was started):
+put a copy of `notebooks/kaggle_sweep.ipynb` with its configuration cell
+set, and a `kernel-metadata.json` naming the two datasets with
+`"enable_gpu": true`, in one folder, then
+
+```bash
+kaggle kernels push -p <folder> --accelerator NvidiaTeslaT4
+```
+
+The accelerator flag is not optional. Version 8 (2026-09-08 18:55 UTC, test
+mode, `mve-code` v4) was pushed without it, ran on a P100 and failed all
+ten conditions before computing any metric; its rows were discarded.
 
 Two rules learned the hard way: editing a notebook cell does not change the
 kernel's variables until the cell is re-run, and only a saved Version's

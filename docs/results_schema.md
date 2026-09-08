@@ -27,7 +27,7 @@ is excluded from analysis but counted by the coverage report.
 | `splits_seed` | Seed of the split file the row was evaluated under |
 | `ranking_provenance` | Provenance block of the `channel_ranking.json` the channel set was derived from |
 | `config_sha256` | First 12 hex digits of the sha256 of `config.yaml` as used |
-| `git_commit` | Commit of the code, or `unknown` when run from a snapshot without `.git` |
+| `git_commit` | Commit of the code: `git rev-parse HEAD` (suffixed `-dirty` for uncommitted changes), else the `COMMIT` file that `scripts/make_kaggle_bundle.py` puts in the snapshot, else `unknown` (the validation rows: `mve-code` v1 predates the file) |
 | `environment`, `device` | Python, torch and numpy versions; `cuda` or `cpu` |
 | `runtime_sec` | Wall time for training plus evaluation |
 

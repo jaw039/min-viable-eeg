@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,11 @@ def edf_path(config: dict, subject: int, run: int) -> Path:
 def get_git_commit(ignore_paths: Sequence[PathLike] = ()) -> str:
     """HEAD commit hash, suffixed '-dirty' if the working tree has changes.
 
+    Outside a git checkout (the Kaggle code snapshot, an unpacked archive)
+    the hash is read from a ``COMMIT`` file at the repo root, which
+    ``scripts/make_kaggle_bundle.py`` writes from the archived HEAD. With
+    neither source the stamp is "unknown".
+
     ignore_paths: tracked files whose modification/deletion should NOT count
     as dirty. Generated-once outputs (splits.json, channel_ranking.json) pass
     their own path here, since regenerating them necessarily touches the
@@ -65,7 +71,16 @@ def get_git_commit(ignore_paths: Sequence[PathLike] = ()) -> str:
         ]
         return commit + "-dirty" if dirty else commit
     except (subprocess.CalledProcessError, OSError, ValueError):
+        return _commit_from_file()
+
+
+def _commit_from_file() -> str:
+    """The hash recorded by the bundle script in REPO_ROOT/COMMIT, else "unknown"."""
+    try:
+        text = (REPO_ROOT / "COMMIT").read_text().strip()
+    except OSError:
         return "unknown"
+    return text if re.fullmatch(r"[0-9a-f]{7,40}", text) else "unknown"
 
 
 def config_hash(path: Optional[PathLike] = None) -> str:

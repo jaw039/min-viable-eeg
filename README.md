@@ -218,8 +218,10 @@ Validation split, complete sweep, every number from provenance-stamped rows
 - `reduction_mode: reduce` and the 17-electrode sensorimotor pool are not on
   the locked protocol list and need sign-off; both are marked `[UNRESOLVED]`
   where they appear.
-- Result rows from Kaggle record `git_commit: "unknown"` because the code
-  snapshot has no `.git`; the code-dataset version is the pin.
+- The validation rows from Kaggle record `git_commit: "unknown"`: `mve-code`
+  v1 predates the `COMMIT` file the bundle now places in the snapshot, so
+  their pin is the code-dataset version (v1 = `e35a506`). Later rows stamp
+  the commit from that file.
 - Choose a licence.
 
 ## Citation
