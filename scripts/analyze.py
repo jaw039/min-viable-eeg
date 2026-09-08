@@ -86,11 +86,13 @@ def main() -> None:
     print()
 
     # --- k* ----------------------------------------------------------------
-    report = {"threshold": threshold, "n_rows": len(ok), "n_errors": len(errs)}
+    report = {"threshold": threshold, "n_rows": len(ok), "n_errors": len(errs),
+              "negative_control": neg}
     try:
         ks = select_kstar(val, threshold=threshold,
                           thresholds=tuple(cfg["eval"]["threshold_sensitivity"]),
-                          planned_seeds=cfg["sweep"]["train_seeds"])
+                          planned_seeds=cfg["sweep"]["train_seeds"],
+                          planned_budgets=cfg["budgets"])
         report["kstar"] = ks
         print("K* (validation only)")
         print("  kappa_full = {:.4f} +/- {:.4f} over {} of {} planned full-montage runs{}".format(
@@ -120,7 +122,8 @@ def main() -> None:
     for k in budgets:
         try:
             c = ranked_vs_random(val, k)
-        except ValueError:
+        except ValueError as exc:
+            print("  k={}: {}".format(k, exc))
             continue
         comparisons[str(k)] = c
         flag = "  <-- AT RESOLUTION FLOOR" if c["p_is_at_resolution_floor"] else ""

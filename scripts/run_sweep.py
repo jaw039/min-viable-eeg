@@ -170,9 +170,20 @@ def run_shard(args, cfg) -> None:
 def write_test_manifest(args, cfg) -> None:
     """The confirmatory manifest: k* and the full montage at every planned seed."""
     kstar = args.kstar
-    if kstar is None and args.kstar_report is not None:
+    if args.kstar_report is not None:
         report = json.loads(Path(args.kstar_report).read_text())
-        kstar = (report.get("kstar") or {}).get("kstar")
+        selected = report.get("kstar") or {}
+        if (report.get("coverage", {}).get("complete") is not True
+                or report.get("n_errors") != 0
+                or selected.get("selected_on") != "val"
+                or selected.get("provisional") is not False
+                or report.get("negative_control", {}).get("passes") is not True):
+            raise SystemExit("Test confirmation requires a complete validation report with "
+                             "no errors and a passing label-shuffle control; rerun audit and analysis")
+        reported_kstar = selected.get("kstar")
+        if kstar is not None and kstar != reported_kstar:
+            raise SystemExit("--kstar disagrees with the validation report")
+        kstar = reported_kstar
         if kstar is None:
             raise SystemExit(
                 "{} holds no k*; the validation sweep has not chosen one yet".format(
@@ -185,6 +196,12 @@ def write_test_manifest(args, cfg) -> None:
     rows = build_test_manifest(int(kstar), cfg["sweep"]["train_seeds"])
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     path = manifest_path("test")
+    if path.exists():
+        if read_jsonl(path) != rows:
+            raise SystemExit("The existing test manifest fixes a different selection; "
+                             "refusing to overwrite the confirmatory experiment")
+        print("existing test manifest already matches k*={} and the planned seeds".format(kstar))
+        return
     with path.open("w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
@@ -251,7 +268,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     global _RESULTS_DIR
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
     if args.results_dir is not None:
         _RESULTS_DIR = Path(args.results_dir)
 
@@ -268,7 +286,7 @@ def main() -> None:
     elif args.budget is not None:
         run_one(args, cfg)
     else:
-        p.print_help()
+        parser.print_help()
 
 
 if __name__ == "__main__":

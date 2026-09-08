@@ -52,17 +52,34 @@ def ranked_vs_random(
     if not random_rows:
         raise ValueError("No random rows at k={} on {}".format(budget_k, split))
 
-    by_subset: Dict[int, List[float]] = {}
+    def scores_by_seed(run_rows):
+        scores = {}
+        for r in run_rows:
+            seed = int(r["train_seed"])
+            if seed in scores:
+                raise ValueError("duplicate training seed {} in one condition".format(seed))
+            scores[seed] = float(r[metric])
+        return scores
+
+    ranked_scores = scores_by_seed(ranked_rows)
+    by_subset: Dict[int, List[Dict]] = {}
     for r in random_rows:
         if r.get("selection_seed") is None:
             raise ValueError(
                 "random row without a selection_seed cannot be attributed to a subset"
             )
-        by_subset.setdefault(int(r["selection_seed"]), []).append(float(r[metric]))
-    subset_means = [statistics.fmean(v) for _, v in sorted(by_subset.items())]
-    seeds_per_subset = [len(v) for _, v in sorted(by_subset.items())]
+        by_subset.setdefault(int(r["selection_seed"]), []).append(r)
+    subset_scores = {s: scores_by_seed(rs) for s, rs in sorted(by_subset.items())}
+    common_seeds = sorted(set(ranked_scores).intersection(
+        *(set(scores) for scores in subset_scores.values())))
+    if not common_seeds:
+        raise ValueError("No common training seeds across ranked and random subsets; "
+                         "wait for matching runs before comparing them")
+    subset_means = [statistics.fmean(scores[s] for s in common_seeds)
+                    for scores in subset_scores.values()]
+    seeds_per_subset = [len(scores) for scores in subset_scores.values()]
 
-    ranked_vals = [float(r[metric]) for r in ranked_rows]
+    ranked_vals = [ranked_scores[s] for s in common_seeds]
     obs = statistics.fmean(ranked_vals)
     n = len(subset_means)
     n_ge = sum(1 for v in subset_means if v >= obs)
@@ -71,8 +88,8 @@ def ranked_vs_random(
     at_floor = abs(p - floor) < 1e-12
     # Uneven seed coverage means the sweep is still running: report, do not hide.
     provisional = (
-        min(seeds_per_subset) != max(seeds_per_subset)
-        or len(ranked_vals) != max(seeds_per_subset)
+        any(set(scores) != set(common_seeds) for scores in subset_scores.values())
+        or set(ranked_scores) != set(common_seeds)
     )
 
     interpretation = (
@@ -84,9 +101,9 @@ def ranked_vs_random(
     )
     if provisional:
         interpretation += (
-            "; provisional: subsets carry {}-{} training seeds and ranked carries "
-            "{}, so the sweep is incomplete".format(
-                min(seeds_per_subset), max(seeds_per_subset), len(ranked_vals))
+            "; provisional: using only common training seeds {}; subsets have "
+            "{}-{} runs and ranked has {}".format(
+                common_seeds, min(seeds_per_subset), max(seeds_per_subset), len(ranked_rows))
         )
 
     return {
@@ -96,6 +113,7 @@ def ranked_vs_random(
         "unit": "subset mean over training seeds",
         "ranked_mean": round(obs, 6),
         "ranked_n": len(ranked_vals),
+        "matched_train_seeds": common_seeds,
         "random_mean": round(statistics.fmean(subset_means), 6),
         "random_std": round(statistics.pstdev(subset_means) if n > 1 else 0.0, 6),
         "random_min": round(min(subset_means), 6),

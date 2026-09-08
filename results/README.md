@@ -55,8 +55,9 @@ Not run. `manifests/manifest_test.jsonl` was written from the validation
 report: k\* = 32 and the 64-channel reference, ranked, scratch, at all five
 seeds (10 conditions). Running it needs a new code-dataset version built
 from the merged commit (`make kaggle-bundle`), and one Kaggle Version with
-`KSTAR = 32` in the notebook's last cell. It will be recorded here with the
-same fields:
+`SPLIT = "test"` and `KSTAR = 32` in the notebook's configuration cell;
+the notebook checks the validation report before writing the manifest. It
+will be recorded here with the same fields:
 
 ```bash
 python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json

@@ -225,3 +225,17 @@ def test_subject_heterogeneity_uses_only_the_headline_arm():
     assert out["n_runs"] == 1
     assert out["rows_excluded_other_arms"] == 2
     assert out["training"] == "scratch"
+
+
+def test_ranked_vs_random_uses_only_training_seeds_shared_by_every_subset():
+    """When one subset lacks a seed, the comparison is made on the seeds all of
+    them share, and says so, rather than mixing means over different seeds."""
+    rows = [row(8, 0.40, seed=42), row(8, 0.10, seed=123)]
+    rows += [row(8, 0.30, selection="random", sel_seed=0, seed=42),
+             row(8, 0.30, selection="random", sel_seed=0, seed=123),
+             row(8, 0.50, selection="random", sel_seed=1, seed=42)]
+    out = ranked_vs_random(rows, 8)
+    assert out["matched_train_seeds"] == [42]
+    assert out["ranked_mean"] == pytest.approx(0.40)      # seed 123 not shared, not used
+    assert out["n_random_at_or_above_ranked"] == 1        # subset 1 at 0.50 on seed 42
+    assert out["provisional"] is True

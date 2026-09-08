@@ -8,12 +8,10 @@ ones in force now (see src.checkpoints).
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, Optional
-
-import numpy as np
+from typing import Dict, Optional, Sequence
 
 from src.dataset import data_root
-from src.utils import ARTIFACTS_DIR
+from src.utils import ARTIFACTS_DIR, REPO_ROOT
 
 ARTIFACT_FILES = {
     "splits_sha256": "splits.json",
@@ -40,24 +38,35 @@ def artifact_hashes(repo_root: Optional[Path] = None) -> Dict[str, Optional[str]
     }
 
 
-def cache_identity(cfg: Optional[dict] = None, root: Optional[Path] = None) -> Dict[str, object]:
-    """Shape-level fingerprint of the preprocessed cache.
+def source_identity() -> str:
+    """Identify library code even in an archive without .git or in a dirty tree."""
+    files = sorted((REPO_ROOT / "src").glob("*.py"))
+    if not files:
+        raise ValueError("No library source files to identify")
+    entries = [(p.name, sha256_file(p)) for p in files]
+    return hashlib.sha256(json.dumps(entries, separators=(",", ":")).encode()).hexdigest()
 
-    Every cached subject with its array shapes, dtypes and byte sizes, read
-    from the .npy headers only, so it costs milliseconds and changes whenever
-    the cache is regenerated with different trials, channels or samples. It
-    does not hash the samples themselves.
+
+def cache_identity(cfg: Optional[dict] = None, root: Optional[Path] = None,
+                   subjects: Optional[Sequence[int]] = None) -> Dict[str, object]:
+    """Content fingerprint of the cache entries used by a teacher.
+
+    Hash both complete .npy files, including the samples and labels. A cache
+    regenerated with the same shapes can still contain different EEG or labels.
+    Teacher callers pass only fitting and inner-holdout subjects; validation
+    and test entries do not participate in teacher identity.
     """
     root = Path(root) if root is not None else data_root()
     entries = []
-    for d in sorted(root.glob("S*")):
+    directories = (sorted(root / "S{:03d}".format(int(s)) for s in set(subjects))
+                   if subjects is not None else sorted(root.glob("S*")))
+    for d in directories:
         x, y = d / "X.npy", d / "y.npy"
         if not (x.exists() and y.exists()):
-            continue
-        xa = np.load(x, mmap_mode="r")
-        ya = np.load(y, mmap_mode="r")
-        entries.append([d.name, list(xa.shape), str(xa.dtype), list(ya.shape), str(ya.dtype),
-                        x.stat().st_size, y.stat().st_size])
+            raise FileNotFoundError("Incomplete cache entry at {}".format(d))
+        entries.append([d.name, sha256_file(x), sha256_file(y)])
+    if not entries:
+        raise ValueError("No cache entries to identify at {}".format(root))
     blob = json.dumps(entries, separators=(",", ":")).encode()
     name = ((cfg or {}).get("dataset") or {}).get("name", "eegmmidb")
     return {

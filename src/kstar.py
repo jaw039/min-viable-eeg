@@ -114,6 +114,7 @@ def select_kstar(
     full_k: int = FULL_MONTAGE_K,
     thresholds: Sequence[float] = DEFAULT_THRESHOLDS,
     planned_seeds: Optional[Sequence[int]] = None,
+    planned_budgets: Optional[Sequence[int]] = None,
 ) -> Dict:
     """Choose k* on validation and report how stable that choice is."""
     rows = list(rows)
@@ -126,6 +127,9 @@ def select_kstar(
             "validation runs."
         )
 
+    keys = [(int(r["budget_k"]), int(r["train_seed"])) for r in eligible]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Duplicate ranked scratch condition; audit the result rows first")
     curve = budget_curve(eligible, metric)
     kstar = _kstar_from_curve(curve, threshold, full_k)
 
@@ -171,11 +175,16 @@ def select_kstar(
     # How much of the planned sweep the curve rests on. n_seeds counts seeds seen
     # at any budget; the full-montage count is what kappa_full actually averages.
     planned = sorted(int(s) for s in planned_seeds) if planned_seeds else None
-    incomplete = (
-        {str(k): c["n"] for k, c in curve.items() if c["n"] < len(planned)}
-        if planned else {}
-    )
+    expected_budgets = sorted(set(int(k) for k in (planned_budgets or curve)))
+    seeds_at_budget = {k: {int(r["train_seed"]) for r in eligible
+                           if int(r["budget_k"]) == k} for k in expected_budgets}
+    incomplete = ({str(k): len(seeds_at_budget[k] & set(planned))
+                   for k in expected_budgets if seeds_at_budget[k] != set(planned)}
+                  if planned else {})
     provisional = bool(incomplete) if planned else None
+    if provisional:
+        verdict = "provisional: planned ranked runs are missing; complete validation before confirmation"
+        stable_seeds = None
     full_seeds = sorted({int(r["train_seed"]) for r in eligible
                          if int(r["budget_k"]) == int(full_k)})
 
@@ -190,6 +199,7 @@ def select_kstar(
         "n_full_montage_runs": curve[full_k]["n"],
         "full_montage_seeds": full_seeds,
         "planned_seeds": planned,
+        "planned_budgets": expected_budgets if planned_budgets is not None else None,
         "incomplete_budgets": incomplete,
         "provisional": provisional,
         "budget_curve": curve,

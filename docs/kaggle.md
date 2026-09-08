@@ -123,6 +123,11 @@ python scripts/audit_results.py --results 'results/*.jsonl'
 python scripts/analyze.py --results 'results/*.jsonl' --test-report
 ```
 
+In the notebook the same happens by setting `SPLIT = "test"` and `KSTAR` in
+the configuration cell: it verifies that the validation report is complete,
+error-free and has a passing label-shuffle control before writing the
+manifest, and it refuses to overwrite a manifest that fixes a different k\*.
+
 Writing a test manifest through `--write-manifest` is refused on purpose: the
 test manifest comes only from `--write-test-manifest` (or `--kstar <k>`),
 which holds k\* and the 64-channel reference and nothing else, so the
