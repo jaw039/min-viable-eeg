@@ -10,6 +10,5 @@ __pycache__/
 # ARE tracked: they are the evidence behind every number in the paper.
 results/single.jsonl
 teachers/
-kstar_report.json
 dist/
 results-repro/

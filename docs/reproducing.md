@@ -35,6 +35,7 @@ hex digits):
 | `results/shard_0_of_4_val.jsonl` | `e71b31bc9b5be8d4` |
 | `results/shard_1_of_4_val.jsonl` | `5e9902ef98ed8715` |
 | `results/shard_2_of_4_val.jsonl` | `34ff025cfa12c128` |
+| `results/shard_3_of_4_val.jsonl` | `e1db29deab737975` |
 
 `protocol_hash()` in `src/utils.py` hashes only the config sections that can
 change a frozen artifact (`dataset`, `preprocess`, `splits`, `budgets`,

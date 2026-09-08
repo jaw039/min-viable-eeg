@@ -7,9 +7,10 @@ a runner that stamps every result row with its provenance, and the analysis
 and audit tools that turn those rows into paper numbers.
 
 **Status (2026-09-08).** The pipeline and its frozen artifacts are final. The
-validation sweep is being executed on Kaggle in four shards. Three of four are
-in `results/`; the fourth has not been started. No test-split row exists yet, and no
-number here is final until all four shards have been audited. The run log is
+validation sweep ran on Kaggle in four shards; all 691 conditions are in
+`results/` and pass the audit with complete coverage. k\* has been chosen on
+validation and the confirmatory test manifest is written, but no test-split
+row exists yet, so the headline is not final. The run log is
 [results/README.md](results/README.md).
 
 | Stage | State |
@@ -17,9 +18,9 @@ number here is final until all four shards have been audited. The run log is
 | Download, preprocessing, epoch cache | done, tested |
 | Subject-wise split, channel ranking, budgets, stability | done, frozen in [`artifacts/`](artifacts/) |
 | Experiment manifest, 691 validation conditions | committed in [`manifests/`](manifests/) |
-| Validation sweep | shards 0–2 complete (519/691), shard 3 pending |
-| k\* selection on validation | provisional until the sweep completes |
-| Test split, evaluated once at k\* | not run |
+| Validation sweep | complete: 691/691 conditions, 0 errors, audit PASS |
+| k\* selection on validation | k\*(0.90) = 32; unstable across seeds (16–64), so the curve is the result |
+| Test split, evaluated once at k\* | manifest written (`manifests/manifest_test.jsonl`), not run |
 | Manuscript | drafts in `paper/`; every unmeasured number stays bracketed |
 
 ## Research question
@@ -171,19 +172,29 @@ private dataset holds the preprocessed cache and the frozen artifacts, a
 second pins the code to a commit, and `notebooks/kaggle_sweep.ipynb` runs one
 shard per saved Version. Only a saved Version's output persists.
 
-## Preliminary observations
+## Validation results
 
-Validation split only, from an incomplete sweep; none of this is a result yet.
+Validation split, complete sweep, every number from provenance-stamped rows
+(`results/kstar_report.json`). The test split has not been run.
 
-- The frozen ranked k=4 set (C4, CP4, C6, CP6) scores at chance. All four are
-  adjacent right-hemisphere sites, so the set carries no left/right contrast.
-  Univariate ranking selects redundant neighbours; this is a finding about the
-  selection method.
-- Random 4-electrode subsets vary widely; the best ones are bilateral, and
-  several strong ones are frontal, which is consistent with a gaze
-  contribution that the sensorimotor arm is designed to expose.
-- From 12 electrodes upward, ranked and random subsets converge.
-- No budget below 64 has yet reached 90% of κ_full; at τ = 0.85, 32 does.
+- **The negative control passes.** Permuted labels give κ = 0.007.
+- **k\*(0.90) = 32 on validation, and it is not stable.** κ_full is
+  0.443 ± 0.063 over five seeds and κ at 32 electrodes is 0.420 ± 0.040.
+  Per seed, k\* is 16, 32, 64, 32 and 64; across thresholds it is 32 at
+  τ = 0.85 and 0.90 and 64 at 0.95. The analysis reports the budget curve
+  with its uncertainty as the result rather than the integer.
+- **The frozen ranked k=4 set (C4, CP4, C6, CP6) scores at chance** (κ =
+  0.002). All four are adjacent right-hemisphere sites, so the set carries
+  no left/right contrast. Univariate ranking selects redundant neighbours;
+  this is a finding about the selection method.
+- **Ranked never beats random significantly.** At every budget the ranked
+  set sits inside the distribution of 20 random subsets; the smallest
+  empirical p is 0.14 (k = 6 and k = 32) against a floor of 0.048.
+- **The sensorimotor restriction is mixed by budget**: the motor strip wins
+  at k = 4 and 8, the unrestricted ranking at 6 and 16, and they agree at 12.
+- **Distillation helps only at k = 4** (+0.031 over scratch, with the
+  shuffled-label teacher at −0.004), and not at 6 or 8.
+- **Subjects differ widely**: per-subject κ at 64 channels ranges 0.21–0.90.
 
 ## Limitations
 
