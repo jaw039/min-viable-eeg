@@ -1,0 +1,10 @@
+{"budget_k": 32, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 42, "split": "test"}
+{"budget_k": 32, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 123, "split": "test"}
+{"budget_k": 32, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 456, "split": "test"}
+{"budget_k": 32, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 789, "split": "test"}
+{"budget_k": 32, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 101112, "split": "test"}
+{"budget_k": 64, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 42, "split": "test"}
+{"budget_k": 64, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 123, "split": "test"}
+{"budget_k": 64, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 456, "split": "test"}
+{"budget_k": 64, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 789, "split": "test"}
+{"budget_k": 64, "selection": "ranked", "selection_seed": null, "training": "scratch", "shuffle_labels": false, "train_seed": 101112, "split": "test"}
