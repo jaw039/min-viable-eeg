@@ -196,23 +196,6 @@ Validation split, complete sweep, every number from provenance-stamped rows
   shuffled-label teacher at −0.004), and not at 6 or 8.
 - **Subjects differ widely**: per-subject κ at 64 channels ranges 0.21–0.90.
 
-## Limitations
-
-- **Subject heterogeneity.** Most training subjects share no electrode with
-  the shared top-4, and with about 45 trials per subject genuine heterogeneity
-  cannot be separated from estimation noise.
-- **Possible cue or gaze contamination.** C3 enters the ranking only at rank
-  23 while frontal and occipital channels outrank it. The sensorimotor arm
-  addresses this; a closed-loop replication would settle it.
-- **The small-k montage is not uniquely determined.** Only C4 is stable under
-  bootstrap resampling; its three companions are interchangeable with frontal
-  and occipital sites.
-- **One dataset, one paradigm, offline evaluation.** κ here is an upper bound
-  on closed-loop performance and may be a property of EEGMMIDB as much as of
-  scalp EEG.
-- **EEGNet-style, not a faithful port.** No max-norm constraints; kernel
-  length 64 rather than fs/2.
-
 ## Test result (confirmatory, evaluated once)
 
 The test split was run once, at the validation-chosen k\* = 32 and the
@@ -234,6 +217,23 @@ The test split was run once, at the validation-chosen k\* = 32 and the
   The budget claim is about the retained fraction, not the absolute κ.
 - No other budget was evaluated on test, so these rows allow no post-hoc
   choice of k\*.
+
+## Limitations
+
+- **Subject heterogeneity.** Most training subjects share no electrode with
+  the shared top-4, and with about 45 trials per subject genuine heterogeneity
+  cannot be separated from estimation noise.
+- **Possible cue or gaze contamination.** C3 enters the ranking only at rank
+  23 while frontal and occipital channels outrank it. The sensorimotor arm
+  addresses this; a closed-loop replication would settle it.
+- **The small-k montage is not uniquely determined.** Only C4 is stable under
+  bootstrap resampling; its three companions are interchangeable with frontal
+  and occipital sites.
+- **One dataset, one paradigm, offline evaluation.** κ here is an upper bound
+  on closed-loop performance and may be a property of EEGMMIDB as much as of
+  scalp EEG.
+- **EEGNet-style, not a faithful port.** No max-norm constraints; kernel
+  length 64 rather than fs/2.
 
 ## Open items before submission
 
