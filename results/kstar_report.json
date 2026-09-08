@@ -2,6 +2,13 @@
   "threshold": 0.9,
   "n_rows": 691,
   "n_errors": 0,
+  "negative_control": {
+    "present": true,
+    "mean_kappa": 0.007138,
+    "n": 1,
+    "passes": true,
+    "note": "floor is where it should be; no evidence of leakage"
+  },
   "kstar": {
     "kstar": 32,
     "threshold": 0.9,
@@ -30,6 +37,15 @@
       456,
       789,
       101112
+    ],
+    "planned_budgets": [
+      4,
+      6,
+      8,
+      12,
+      16,
+      32,
+      64
     ],
     "incomplete_budgets": {},
     "provisional": false,
@@ -144,6 +160,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.002138,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.087938,
       "random_std": 0.083349,
       "random_min": -0.007478,
@@ -168,6 +191,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.165976,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.081106,
       "random_std": 0.071765,
       "random_min": -0.014238,
@@ -192,6 +222,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.174376,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.132022,
       "random_std": 0.07963,
       "random_min": -0.011655,
@@ -216,6 +253,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.277988,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.242065,
       "random_std": 0.067883,
       "random_min": 0.139082,
@@ -240,6 +284,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.3251,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.290512,
       "random_std": 0.056116,
       "random_min": 0.186775,
@@ -264,6 +315,13 @@
       "unit": "subset mean over training seeds",
       "ranked_mean": 0.419777,
       "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
       "random_mean": 0.368609,
       "random_std": 0.04844,
       "random_min": 0.256892,
