@@ -7,8 +7,8 @@ a runner that stamps every result row with its provenance, and the analysis
 and audit tools that turn those rows into paper numbers.
 
 **Status (2026-09-08).** The pipeline and its frozen artifacts are final. The
-validation sweep is being executed on Kaggle in four shards. Two of four are in
-`results/` and the third is running. No test-split row exists yet, and no
+validation sweep is being executed on Kaggle in four shards. Three of four are
+in `results/`; the fourth has not been started. No test-split row exists yet, and no
 number here is final until all four shards have been audited. The run log is
 [results/README.md](results/README.md).
 
@@ -17,7 +17,7 @@ number here is final until all four shards have been audited. The run log is
 | Download, preprocessing, epoch cache | done, tested |
 | Subject-wise split, channel ranking, budgets, stability | done, frozen in [`artifacts/`](artifacts/) |
 | Experiment manifest, 691 validation conditions | committed in [`manifests/`](manifests/) |
-| Validation sweep | shards 0 and 1 complete (346/691), shard 2 running, shard 3 pending |
+| Validation sweep | shards 0–2 complete (519/691), shard 3 pending |
 | k\* selection on validation | provisional until the sweep completes |
 | Test split, evaluated once at k\* | not run |
 | Manuscript | drafts in `paper/`; every unmeasured number stays bracketed |

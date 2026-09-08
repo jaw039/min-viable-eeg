@@ -25,16 +25,18 @@ rows' `runtime_sec`.
 | --- | --- | --- | --- | --- | --- | --- |
 | 0 | not recorded | 2026-09-05 | 173 | 0 | 70.5 min | `e71b31bc9b5be8d4` |
 | 1 | Version 5 | 2026-09-08, 00:04–01:01 | 173 | 0 | 56.5 min | `5e9902ef98ed8715` |
-| 2 | Version 6 | 2026-09-08, started 01:09 | running | | | |
+| 2 | Version 6 | 2026-09-08, 01:09–02:16 | 173 | 0 | 68.4 min | `34ff025cfa12c128` |
 | 3 | | pending | | | | |
 
 Discarded runs: a Version 4 of shard 1 was cancelled 55 minutes in, before
 its output was saved; nothing from it is used. Interactive sessions do not
 persist output and none of their rows exist.
 
-Coverage after shards 0 and 1: 346 of 691 conditions. The label-shuffle
-control, the remaining ranked seeds and the rest of the sensorimotor and
-distillation arms are in shards 2 and 3.
+Coverage after shards 0–2: 519 of 691 conditions. The label-shuffle control
+has run (κ = 0.007 on permuted labels: no leakage). Shard 3 holds the
+remaining 150 random subsets, 7 ranked, 8 sensorimotor and 7
+shuffled-teacher conditions; until it lands every analysis output is
+marked provisional.
 
 ## Adding a shard
 
