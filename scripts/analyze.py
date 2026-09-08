@@ -4,7 +4,7 @@
     python scripts/analyze.py --results results/*.jsonl --emit-followup
     python scripts/analyze.py --results results/*.jsonl --test-report
 
-Writes kstar_report.json. The negative control is checked first: if the
+Writes results/kstar_report.json. The negative control is checked first: if the
 label-shuffle floor is not near zero, nothing else in the sweep is
 interpretable and the script says so before printing any headline.
 """
@@ -47,7 +47,7 @@ def main() -> None:
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--results", nargs="+", required=True)
     p.add_argument("--threshold", type=float, default=None)
-    p.add_argument("--out", type=Path, default=REPO_ROOT / "kstar_report.json")
+    p.add_argument("--out", type=Path, default=REPO_ROOT / "results" / "kstar_report.json")
     p.add_argument("--test-report", action="store_true",
                    help="evaluate test once at the k* chosen on validation")
     p.add_argument("--emit-followup", action="store_true",
@@ -201,6 +201,7 @@ def main() -> None:
                 tr["retained_fraction"]))
             print()
 
+    args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
     print("wrote {}".format(args.out))
 

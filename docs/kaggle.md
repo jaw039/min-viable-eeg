@@ -23,9 +23,12 @@ you eligible for AWS credit or an A100 grant later.
 
 Whoever has `data/processed/` populated uploads it as a **private** dataset:
 
-- Datasets → New Dataset → upload a zip containing `processed/` plus
-  `splits.json`, `channel_ranking.json` and `budgets.json`. Kaggle unzips
-  archives on its side.
+- Build the zip with `python scripts/make_kaggle_bundle.py --cache`. It
+  contains `cache/processed/S###/{X,y}.npy` plus `cache/splits.json`,
+  `cache/channel_ranking.json` and `cache/budgets.json` (copied from
+  `artifacts/`). Datasets → New Dataset → upload it. Kaggle unzips archives
+  on its side and keeps the zip's top-level folder, which is why the mount
+  path ends in `/cache`.
 - Name it something stable, e.g. `mve-eegmmidb-cache`. Keep it **Private** and
   add the other three as collaborators, so every account reads the *same
   versioned copy* and no number depends on whose local cache produced it.
@@ -36,8 +39,12 @@ Whoever has `data/processed/` populated uploads it as a **private** dataset:
 
 Either option works; pick one and be consistent.
 
-- **Zip snapshot** (simplest): zip the repo at a specific commit, upload as a
+- **Zip snapshot** (simplest, what the team uses):
+  `python scripts/make_kaggle_bundle.py --code` writes a `git archive` of
+  HEAD (it refuses a dirty tree) under a `code/` folder; upload it as a
   second private dataset (`mve-code`). The dataset version pins the code.
+  Result rows from a snapshot record `git_commit: "unknown"` because the
+  archive has no `.git`; the dataset version number is the pin.
 - **Git clone**: Add-ons → Secrets → add `GITHUB_TOKEN` (a fine-grained,
   read-only PAT for this repo), then clone and `git checkout <full-sha>` in the
   notebook.
@@ -71,28 +78,40 @@ That writes `manifests/manifest_val.jsonl` — 691 conditions at the configured
 5. Run through the smoke test and **stop there**. Post the projected hours to
    the channel. If one condition is seconds, carry on; if it is an hour,
    re-plan before spending anyone's quota.
-6. Run the sweep cell. It is resumable — completed conditions are skipped, so a
-   12-hour session limit or a dropped connection costs nothing.
+6. Set `SHARD_ID`, then **Save Version → Save & Run All (Commit)**. That runs
+   the whole notebook headless as "Version N" and persists `/kaggle/working`
+   as that version's output. Do **not** run a shard with the toolbar's Run
+   All: an interactive session's output is discarded when the session ends.
+   Completed conditions are skipped on a re-run, but only if the earlier
+   rows are attached as input.
 
 **Stop the session from Active Events when you finish.** The meter runs while a
 session is open even when idle, and closing the browser tab does not stop it.
 
 ## D · Merging and analysing
 
-Each notebook writes `/kaggle/working/results/shard_<i>_of_<n>_val.jsonl`,
-which persists as notebook output (20 GB limit) and can be attached as *input*
-to another notebook. Whoever does the analysis attaches all four, or downloads
+Each saved Version writes `/kaggle/working/results/shard_<i>_of_<n>_val.jsonl`,
+which persists as that version's output (20 GB limit), can be attached as
+*input* to another notebook, and downloads with
+`kaggle kernels output <owner>/<notebook> -p <dir>`. Whoever does the analysis attaches all four, or downloads
 them, then:
 
 ```bash
 python scripts/analyze.py --results 'results/*.jsonl' --emit-followup
 ```
 
-That prints the negative control first — if the label-shuffle floor is not near
-zero, it stops, because nothing else is interpretable until that is explained.
-Then k\*, the budget curve, ranked-vs-random with its resolution floor, the
-sensorimotor comparison, distillation, subject heterogeneity, and a coverage
-report. It writes `kstar_report.json`.
+Before that, audit the rows. The audit re-derives every row's channel set,
+split membership and ranking provenance from the frozen artifacts and exits
+non-zero on any protocol violation:
+
+```bash
+python scripts/audit_results.py --results 'results/*.jsonl'
+```
+
+`analyze.py` prints the negative control first (and warns while no
+label-shuffle row exists yet), then k\*, the budget curve, ranked-vs-random
+with its resolution floor, the sensorimotor comparison, distillation, subject
+heterogeneity, and a coverage report. It writes `results/kstar_report.json`.
 
 Run the test split **once**, at the k\* the validation curve chose:
 
@@ -110,8 +129,11 @@ python scripts/analyze.py --results 'results/*.jsonl' --test-report
 
 - **The quota meter runs on idle sessions.** The single most common way free
   hours disappear. Active Events panel, bottom left.
-- **"Save & Run All" starts a *separate* session.** Two concurrent sessions
-  burn two meters. Cancel duplicates.
+- **Only a saved Version keeps its output.** "Save & Run All (Commit)" runs
+  a fresh headless copy in its own session, alongside any interactive session
+  you still have open. Stop the *interactive* session from Active Events to
+  save quota; never cancel the Version. Shard 1 was lost once, 55 minutes in,
+  by cancelling the wrong one.
 - **Sessions cap at 12 hours** and `/kaggle/working` is wiped when the session
   ends — which is why the runner is resumable.
 - **No shell.** Prefix shell commands with `!` in a cell.
@@ -148,5 +170,46 @@ python scripts/run_sweep.py --manifest --shard-id 0 --num-shards 4
 `MVE_DATA_ROOT` points the runner at a cache outside the repo:
 
 ```bash
-MVE_DATA_ROOT=/kaggle/input/mve-eegmmidb-cache/processed python scripts/run_sweep.py --smoke-test
+MVE_DATA_ROOT=/kaggle/input/datasets/<owner>/mve-eegmmidb-cache/cache/processed python scripts/run_sweep.py --smoke-test
 ```
+
+---
+
+## E · What the team actually ran
+
+Recorded so that the sweep can be re-executed, or its rows traced, without
+anyone's memory.
+
+| Item | Value |
+| --- | --- |
+| Cache dataset | `jackiewang2323/mve-eegmmidb-cache`, version 1, 724 MB, uploaded 2026-09-05 |
+| Code dataset | `jackiewang2323/mve-code`, version 1 = commit `e35a506`, uploaded 2026-09-05 |
+| Notebook | `jackiewang2323/notebookeb3bd89e45` (this repository's `notebooks/kaggle_sweep.ipynb`) |
+| Accelerator | GPU T4 ×2 |
+| Image | `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461` |
+| Environment stamped in rows | `python3.12.13 torch2.10.0+cu128 numpy2.0.2` |
+| Config hash stamped in rows | `af8fbd091329` |
+| Mount paths | `/kaggle/input/datasets/jackiewang2323/mve-eegmmidb-cache/cache`, `/kaggle/input/datasets/jackiewang2323/mve-code/code` |
+
+Per-shard outcomes (version numbers, wall time, row counts, file hashes) are
+in [results/README.md](../results/README.md).
+
+Checking and pulling a shard from the command line (Kaggle CLI 2.x needs
+Python ≥ 3.11 and a token at `~/.kaggle/access_token`):
+
+```bash
+kaggle kernels status jackiewang2323/notebookeb3bd89e45
+kaggle kernels output jackiewang2323/notebookeb3bd89e45 -p /tmp/kaggle_out
+cp /tmp/kaggle_out/results/shard_2_of_4_val.jsonl results/
+python scripts/audit_results.py --results 'results/*.jsonl'
+python scripts/analyze.py --results 'results/*.jsonl'
+```
+
+The notebook in this repository matches the current layout (`artifacts/`).
+`mve-code` v1 predates that move, so all four validation shards run from
+v1 unchanged; a later run (the test split) needs a new dataset version
+built with `scripts/make_kaggle_bundle.py --code` from the merged commit.
+
+Two rules learned the hard way: editing a notebook cell does not change the
+kernel's variables until the cell is re-run, and only a saved Version's
+output survives the end of a session.

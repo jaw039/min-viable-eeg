@@ -35,7 +35,7 @@ from src.eegnet import EEGNet
 from src.metrics import evaluate
 from src.normalize import apply_stats, fit_stats
 from src.training import get_device, make_data_loader, predict, train_epoch
-from src.utils import REPO_ROOT, config_hash, get_git_commit, load_config
+from src.utils import ARTIFACTS_DIR, config_hash, get_git_commit, load_config
 
 TRAINING_MODES = ("scratch", "distill", "distill_shuffled_teacher")
 SPLITS = ("val", "test")
@@ -45,7 +45,7 @@ SPLITS = ("val", "test")
 
 
 def load_splits_json(path: Optional[Path] = None) -> dict:
-    path = path or REPO_ROOT / "splits.json"
+    path = path or ARTIFACTS_DIR / "splits.json"
     with open(path) as f:
         return json.load(f)
 

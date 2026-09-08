@@ -2,7 +2,7 @@
 
 Run as: python -m src.splits
 
-Writes splits.json at the repo root and refuses to overwrite an existing
+Writes artifacts/splits.json and refuses to overwrite an existing
 file. Operates on the subject ID list only — no EEG data required.
 """
 
@@ -12,9 +12,9 @@ from typing import Dict, List
 
 import numpy as np
 
-from src.utils import N_SUBJECTS, REPO_ROOT, load_config, provenance
+from src.utils import ARTIFACTS_DIR, N_SUBJECTS, load_config, provenance
 
-SPLITS_PATH = REPO_ROOT / "splits.json"
+SPLITS_PATH = ARTIFACTS_DIR / "splits.json"
 
 
 def make_splits(config: dict) -> Dict[str, List[int]]:

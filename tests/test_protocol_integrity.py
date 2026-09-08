@@ -13,7 +13,7 @@ import json
 import pytest
 
 from src.channels import montage_order
-from src.utils import REPO_ROOT, load_config, protocol_hash
+from src.utils import ARTIFACTS_DIR, load_config, protocol_hash
 
 ARTIFACTS = ("splits.json", "channel_ranking.json", "budgets.json", "stability.json")
 
@@ -24,7 +24,7 @@ def cfg():
 
 
 def artifact(name):
-    with open(REPO_ROOT / name) as f:
+    with open(ARTIFACTS_DIR / name) as f:
         return json.load(f)
 
 

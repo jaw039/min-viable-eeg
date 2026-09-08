@@ -1,4 +1,8 @@
-# Project Summary — min-viable-eeg data pipeline
+# Development log — data pipeline (August 2026)
+
+> Historical session log, kept verbatim. Paths have since moved: the frozen
+> JSON artifacts named below now live in `artifacts/`, and this file was
+> `SUMMARY.md` at the repository root until 2026-09-07.
 
 Research question: how few EEG electrodes are needed for motor imagery
 decoding (PhysioNet EEGMMIDB, 2-class left/right fist, runs 4/8/12).

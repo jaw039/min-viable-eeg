@@ -26,7 +26,7 @@ import random
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from src.utils import REPO_ROOT
+from src.utils import ARTIFACTS_DIR
 
 SELECTION_MODES: Tuple[str, ...] = ("ranked", "random", "sensorimotor")
 
@@ -49,14 +49,14 @@ class ChannelDriftError(RuntimeError):
 
 def load_ranking(path: Optional[Path] = None) -> Tuple[List[str], dict]:
     """Frozen channel ranking, best-first, with its provenance."""
-    path = path or REPO_ROOT / "channel_ranking.json"
+    path = path or ARTIFACTS_DIR / "channel_ranking.json"
     with open(path) as f:
         r = json.load(f)
     return list(r["channels"]), r["provenance"]
 
 
 def load_budgets(path: Optional[Path] = None) -> dict:
-    path = path or REPO_ROOT / "budgets.json"
+    path = path or ARTIFACTS_DIR / "budgets.json"
     with open(path) as f:
         return json.load(f)
 

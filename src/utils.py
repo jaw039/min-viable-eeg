@@ -11,6 +11,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "config.yaml"
+# Generated-once protocol artifacts (splits, ranking, budgets, stability).
+# Frozen: their writers refuse to overwrite an existing file.
+ARTIFACTS_DIR = REPO_ROOT / "artifacts"
 
 # EEGMMIDB ships 109 subjects, S001-S109 (protocol-locked dataset).
 N_SUBJECTS = 109

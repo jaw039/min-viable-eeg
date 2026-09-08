@@ -35,10 +35,10 @@ from matplotlib.patches import Patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.loader import load_subject
-from src.utils import REPO_ROOT, data_root, load_config
+from src.utils import ARTIFACTS_DIR, REPO_ROOT, data_root, load_config
 
 FIG_DIR = REPO_ROOT / "figures"
-STABILITY_PATH = REPO_ROOT / "stability.json"
+STABILITY_PATH = ARTIFACTS_DIR / "stability.json"
 
 # Two categorical hues (frozen-set vs per-subject) plus a recessive gray.
 BLUE, ORANGE, GRAY = "#2a78d6", "#eb6834", "#b8b7b2"

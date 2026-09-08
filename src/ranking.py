@@ -2,7 +2,7 @@
 
 Run as: python -m src.ranking
 
-Writes channel_ranking.json at the repo root with the same generated-once
+Writes artifacts/channel_ranking.json with the same generated-once
 policy as splits.json (refuses to overwrite; delete manually to regenerate —
 regeneration is deterministic).
 
@@ -20,10 +20,10 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.utils import REPO_ROOT, data_root, load_config, provenance
+from src.utils import ARTIFACTS_DIR, data_root, load_config, provenance
 
-RANKING_PATH = REPO_ROOT / "channel_ranking.json"
-SPLITS_PATH = REPO_ROOT / "splits.json"
+RANKING_PATH = ARTIFACTS_DIR / "channel_ranking.json"
+SPLITS_PATH = ARTIFACTS_DIR / "splits.json"
 
 METHOD = "fisher_log_bandpower_subject_mean"
 _EPS = 1e-12  # keeps the Fisher denominator finite on degenerate input
