@@ -23,17 +23,21 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.channels import montage_order
-from src.manifest import build_manifest, condition_key, shard, summarise
+from src.manifest import build_manifest, build_test_manifest, condition_key, shard, summarise
 from src.runner import run_condition
 from src.utils import REPO_ROOT, load_config
 
 MANIFEST_DIR = REPO_ROOT / "manifests"
+_RESULTS_DIR = None   # set by --results-dir
 
 
 def results_dir() -> Path:
-    kaggle = Path("/kaggle/working")
-    base = kaggle if kaggle.exists() else REPO_ROOT
-    d = base / "results"
+    if _RESULTS_DIR is not None:
+        d = Path(_RESULTS_DIR)
+    else:
+        kaggle = Path("/kaggle/working")
+        base = kaggle if kaggle.exists() else REPO_ROOT
+        d = base / "results"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -59,10 +63,13 @@ def write_manifest(args, cfg) -> None:
     seeds = args.train_seeds or list(cfg["sweep"]["train_seeds"])
     n_random = args.n_random if args.n_random is not None else int(cfg["sweep"]["n_random_subsets"])
 
-    if args.split == "test" and args.budget is None:
+    if args.split == "test":
         raise SystemExit(
-            "--write-manifest --split test requires --budget: confirm the single\n"
-            "chosen k* on test. Sweeping test across budgets is test-set selection."
+            "--write-manifest writes the validation sweep only. The test split is\n"
+            "evaluated once, at the k* chosen on validation, from a manifest that\n"
+            "holds exactly k* and the 64-channel reference:\n"
+            "    python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json\n"
+            "    python scripts/run_sweep.py --write-test-manifest --kstar <k*>"
         )
 
     rows = build_manifest(
@@ -160,6 +167,34 @@ def run_shard(args, cfg) -> None:
     print("\ndone in {:.1f} min -> {}".format((time.time() - started) / 60, out))
 
 
+def write_test_manifest(args, cfg) -> None:
+    """The confirmatory manifest: k* and the full montage at every planned seed."""
+    kstar = args.kstar
+    if kstar is None and args.kstar_report is not None:
+        report = json.loads(Path(args.kstar_report).read_text())
+        kstar = (report.get("kstar") or {}).get("kstar")
+        if kstar is None:
+            raise SystemExit(
+                "{} holds no k*; the validation sweep has not chosen one yet".format(
+                    args.kstar_report))
+    if kstar is None:
+        raise SystemExit(
+            "--write-test-manifest needs --kstar <k> or --kstar-report <analyze.py report>")
+    if int(kstar) not in [int(b) for b in cfg["budgets"]]:
+        raise SystemExit("k*={} is not one of the protocol budgets {}".format(kstar, cfg["budgets"]))
+    rows = build_test_manifest(int(kstar), cfg["sweep"]["train_seeds"])
+    MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
+    path = manifest_path("test")
+    with path.open("w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    print("wrote {} conditions -> {}".format(len(rows), path))
+    print("  k*={} and k=64, ranked, scratch, train seeds {}".format(
+        kstar, list(cfg["sweep"]["train_seeds"])))
+    print("  inspect it, then:")
+    print("    python scripts/run_sweep.py --manifest --split test --shard-id 0 --num-shards 1")
+
+
 def smoke_test(cfg) -> None:
     """One cheap condition, to prove the path works before spending quota."""
     cfg = json.loads(json.dumps(cfg))  # deep copy
@@ -178,11 +213,22 @@ def smoke_test(cfg) -> None:
         time.time() - t0))
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--smoke-test", action="store_true")
-    p.add_argument("--write-manifest", action="store_true")
+    p.add_argument("--write-manifest", action="store_true",
+                   help="write the validation manifest: every arm and control")
+    p.add_argument("--write-test-manifest", action="store_true",
+                   help="write the confirmatory test manifest: the chosen k* and the "
+                        "64-channel reference, nothing else")
+    p.add_argument("--kstar", type=int, default=None,
+                   help="k* chosen on validation, for --write-test-manifest")
+    p.add_argument("--kstar-report", type=Path, default=None,
+                   help="read k* from an analyze.py report instead of typing it")
+    p.add_argument("--results-dir", type=Path, default=None,
+                   help="where result rows go (default results/, or /kaggle/working/results); "
+                        "use a fresh directory to reproduce rather than resume")
     p.add_argument("--manifest", action="store_true", help="run a shard of the manifest")
     p.add_argument("--shard-id", type=int, default=0)
     p.add_argument("--num-shards", type=int, default=1)
@@ -200,12 +246,21 @@ def main() -> None:
     p.add_argument("--shuffle-labels", action="store_true",
                    help="negative control: expect kappa near zero")
     p.add_argument("--no-distillation", action="store_true")
-    args = p.parse_args()
+    return p
+
+
+def main() -> None:
+    global _RESULTS_DIR
+    args = build_parser().parse_args()
+    if args.results_dir is not None:
+        _RESULTS_DIR = Path(args.results_dir)
 
     cfg = load_config()
 
     if args.smoke_test:
         smoke_test(cfg)
+    elif args.write_test_manifest:
+        write_test_manifest(args, cfg)
     elif args.write_manifest:
         write_manifest(args, cfg)
     elif args.manifest:

@@ -69,6 +69,39 @@ def test_missing_conditions_identifies_the_gap(ch_names):
     assert len(missing) == len(rows) - 3
 
 
+def test_test_manifest_holds_kstar_and_the_full_montage_only():
+    """The confirmatory manifest must let test_report compute the retained
+    fraction: k* AND k=64, at every planned seed, and nothing else. The
+    generic writer at one budget had no full-montage reference."""
+    from src.kstar import test_report
+    from src.manifest import build_test_manifest
+
+    rows = build_test_manifest(32, [42, 123, 456, 789, 101112])
+    assert len(rows) == 10
+    assert {r["budget_k"] for r in rows} == {32, 64}
+    assert all(r["selection"] == "ranked" and r["training"] == "scratch"
+               and r["split"] == "test" and not r["shuffle_labels"] for r in rows)
+    fake = [dict(r, kappa=0.3 if r["budget_k"] == 32 else 0.4) for r in rows]
+    rep = test_report(fake, kstar=32)
+    assert rep["n_runs_at_kstar"] == 5 and rep["n_runs_full"] == 5
+    assert rep["retained_fraction"] == pytest.approx(0.75)
+
+
+def test_test_manifest_writes_the_full_montage_once_when_it_is_kstar():
+    from src.manifest import build_test_manifest
+
+    rows = build_test_manifest(64, [42, 123])
+    assert len(rows) == 2
+    assert {r["budget_k"] for r in rows} == {64}
+
+
+def test_test_manifest_requires_a_chosen_kstar():
+    from src.manifest import build_test_manifest
+
+    with pytest.raises(ValueError):
+        build_test_manifest(None, [42])
+
+
 # ------------------------------------------------------------------ runner
 
 
@@ -230,3 +263,66 @@ def test_missing_cache_gives_an_actionable_error(cfg, monkeypatch):
     )
     with pytest.raises(FileNotFoundError, match="MVE_DATA_ROOT"):
         R.run_condition(4, "ranked", split="val", cfg=cfg)
+
+
+# ------------------------------------------------------------------ teacher cache provenance
+
+
+def test_teacher_checkpoint_is_reused_only_with_matching_provenance(cfg, tmp_path):
+    """A cached teacher carries the provenance that would reproduce it. Same
+    protocol: reused. Changed learning rate: retrained, never loaded as if
+    nothing had moved."""
+    first = R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg,
+                            teacher_cache=tmp_path)
+    assert first["teacher_cached"] is False
+    again = R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg,
+                            teacher_cache=tmp_path)
+    assert again["teacher_cached"] is True
+    assert again["teacher_checkpoint"] == first["teacher_checkpoint"]
+
+    changed = json.loads(json.dumps(cfg))
+    changed["training"]["learning_rate"] = 0.1
+    third = R.run_condition(4, "ranked", training="distill", split="val", cfg=changed,
+                            teacher_cache=tmp_path)
+    assert third["teacher_cached"] is False
+    assert third["teacher_checkpoint"] != first["teacher_checkpoint"]
+    assert len(list(tmp_path.glob("teacher_real_*"))) == 2
+
+
+def test_legacy_bare_state_dict_is_not_loaded_as_a_teacher(cfg, tmp_path):
+    """A pre-provenance checkpoint at the expected name is retrained over, and
+    the row records why."""
+    import torch
+
+    first = R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg,
+                            teacher_cache=tmp_path)
+    path = tmp_path / first["teacher_checkpoint"]
+    torch.save({"w": torch.zeros(2)}, path)
+    again = R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg,
+                            teacher_cache=tmp_path)
+    assert again["teacher_cached"] is False
+    assert "bare state dict" in again["teacher_cache_rejected"]
+    payload = torch.load(path, weights_only=False)
+    assert "identity" in payload
+
+
+def test_real_and_shuffled_teachers_never_share_a_checkpoint(cfg, tmp_path):
+    R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg, teacher_cache=tmp_path)
+    R.run_condition(4, "ranked", training="distill_shuffled_teacher", split="val", cfg=cfg,
+                    teacher_cache=tmp_path)
+    names = sorted(p.name for p in tmp_path.iterdir())
+    assert len(names) == 2
+    assert any("teacher_real_" in n for n in names) and any("teacher_shuffled_" in n for n in names)
+
+
+def test_teacher_checkpoint_records_the_frozen_artifacts_and_cache(cfg, tmp_path):
+    import torch
+    from src.provenance import artifact_hashes
+
+    row = R.run_condition(4, "ranked", training="distill", split="val", cfg=cfg,
+                          teacher_cache=tmp_path)
+    payload = torch.load(tmp_path / row["teacher_checkpoint"], weights_only=False)
+    ident = payload["identity"]
+    assert ident["splits_sha256"] == artifact_hashes()["splits_sha256"]
+    assert ident["cache_manifest_sha256"] and ident["n_channels"] == 64
+    assert ident["fit_subjects"] and ident["inner_holdout_subjects"]

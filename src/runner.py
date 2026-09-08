@@ -28,12 +28,15 @@ import numpy as np
 import torch
 
 from src.budget import reduce_channels
+from src.checkpoints import (StaleCheckpointError, build_identity, checkpoint_filename,
+                             load_checkpoint, save_checkpoint)
 from src.channels import load_ranking, montage_order, selection_for_run
 from src.dataset import SplitData, load_split, trials_per_subject
 from src.distillation import DistillationLoss, train_distillation_epoch
 from src.eegnet import EEGNet
 from src.metrics import evaluate
 from src.normalize import apply_stats, fit_stats
+from src.provenance import artifact_hashes, cache_identity
 from src.training import get_device, make_data_loader, predict, train_epoch
 from src.utils import ARTIFACTS_DIR, config_hash, get_git_commit, load_config
 
@@ -134,32 +137,68 @@ def train_with_early_stopping(
     return model, {"best_epoch": best_epoch, "inner_kappa": round(float(best_score), 6)}
 
 
-def get_teacher(X_fit, y_fit, X_hold, y_hold, cfg, device, seed, mode, cache_dir):
+def teacher_identity(mode, train_seed, ch_names, cfg, fit_subj, hold_subj,
+                     git_commit=None, config_sha256=None):
+    """Everything a cached teacher must match to be reused (see src.checkpoints)."""
+    return build_identity(
+        teacher_mode=mode,
+        train_seed=int(train_seed),
+        n_channels=len(ch_names),
+        channel_order=list(ch_names),
+        config=cfg,
+        cache_ident=cache_identity(cfg),
+        artifact_hashes=artifact_hashes(),
+        fit_subjects=fit_subj,
+        inner_holdout_subjects=hold_subj,
+        shuffle_seed=None if mode == "real" else int(train_seed),
+        git_commit=git_commit,
+        config_sha256=config_sha256,
+    )
+
+
+def get_teacher(X_fit, y_fit, X_hold, y_hold, cfg, device, seed, mode, cache_dir, identity=None):
     """Full-montage teacher. mode 'real' or 'shuffled'.
 
     The shuffled teacher is trained on permuted labels: a confident model that
     knows nothing. If distillation still helps against it, the gain is
     regularisation from soft targets rather than knowledge transfer, and the
     paper has to say so.
+
+    A cached teacher is reused only if the checkpoint's recorded provenance
+    matches `identity` field by field: configuration, split, frozen artifacts,
+    cache fingerprint and code. Anything else, including a pre-provenance bare
+    state dict, is retrained, and the rejection is recorded in the result row.
     """
     n_channels = X_fit.shape[1]
-    tag = "teacher_{}_{}ch_seed{}.pt".format(mode, n_channels, seed)
-    path = Path(cache_dir) / tag if cache_dir else None
-
-    if path is not None and path.exists():
-        model = _build(n_channels, cfg, device)
-        model.load_state_dict(torch.load(path, map_location=device))
-        return model, {"teacher_cached": True}
+    info: Dict[str, object] = {}
+    path = None
+    if cache_dir is not None:
+        if identity is None:
+            raise ValueError("a teacher cache requires an identity to validate checkpoints against")
+        path = Path(cache_dir) / checkpoint_filename(identity)
+        info["teacher_checkpoint"] = path.name
+        if path.exists():
+            try:
+                payload = load_checkpoint(path, identity, device=device)
+            except StaleCheckpointError as exc:
+                info["teacher_cache_rejected"] = str(exc).splitlines()[0]
+            else:
+                model = _build(n_channels, cfg, device)
+                model.load_state_dict(payload["state_dict"])
+                info.update(teacher_cached=True,
+                            teacher_inner_kappa=payload.get("inner_holdout_kappa"))
+                return model, info
 
     yf = y_fit if mode == "real" else _shuffled(y_fit, seed)
     yh = y_hold if mode == "real" else _shuffled(y_hold, seed + 1)
-    model, info = train_with_early_stopping(
+    model, tinfo = train_with_early_stopping(
         X_fit, yf, X_hold, yh, n_channels, cfg, device, seed
     )
     if path is not None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), path)
-    return model, {"teacher_cached": False, "teacher_inner_kappa": info["inner_kappa"]}
+        state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
+        save_checkpoint(path, state, identity, tinfo["best_epoch"], tinfo["inner_kappa"])
+    info.update(teacher_cached=False, teacher_inner_kappa=tinfo["inner_kappa"])
+    return model, info
 
 
 def train_student(
@@ -224,6 +263,8 @@ def run_condition(
 
     cfg = cfg or load_config()
     started = time.time()
+    git_commit = get_git_commit()
+    cfg_sha = config_hash()
 
     ch_names = montage_order()
     ranked, ranking_prov = load_ranking()
@@ -266,9 +307,13 @@ def run_condition(
     else:
         kept = [c for c in ch_names if c in set(selected)]
         channel_indices = [ch_names.index(c) for c in kept]
+        mode = "real" if training == "distill" else "shuffled"
+        identity = None
+        if teacher_cache is not None:
+            identity = teacher_identity(mode, train_seed, ch_names, cfg, fit_subj, hold_subj,
+                                        git_commit=git_commit, config_sha256=cfg_sha)
         teacher, tinfo = get_teacher(
-            X_fit, y_fit, X_hold, y_hold, cfg, device, train_seed,
-            "real" if training == "distill" else "shuffled", teacher_cache,
+            X_fit, y_fit, X_hold, y_hold, cfg, device, train_seed, mode, teacher_cache, identity
         )
         extra.update(tinfo)
         model, info = train_student(
@@ -299,8 +344,8 @@ def run_condition(
         "n_inner_holdout_subjects": len(hold_subj),
         "best_epoch": info["best_epoch"],
         "inner_kappa": info["inner_kappa"],
-        "git_commit": get_git_commit(),
-        "config_sha256": config_hash(),
+        "git_commit": git_commit,
+        "config_sha256": cfg_sha,
         "ranking_provenance": ranking_prov,
         "splits_seed": splits["seed"],
         "environment": environment_string(),

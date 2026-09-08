@@ -94,6 +94,33 @@ def build_manifest(
     return rows
 
 
+def build_test_manifest(
+    kstar: int, train_seeds: Sequence[int], full_k: int = 64, split: str = "test"
+) -> List[Dict]:
+    """The confirmatory manifest: the chosen k* and the full-montage reference.
+
+    `test_report` needs both, because the retained fraction on test is
+    kappa_k* / kappa_full, and it needs nothing else: controls stay on
+    validation, and no other budget is ever evaluated on test. When k* is the
+    full montage the two coincide and the rows are written once.
+    """
+    if kstar is None:
+        raise ValueError("kstar is required; choose it on validation first")
+    rows: List[Dict] = []
+    for k in sorted({int(kstar), int(full_k)}):
+        for seed in train_seeds:
+            rows.append({
+                "budget_k": k,
+                "selection": "ranked",
+                "selection_seed": None,
+                "training": "scratch",
+                "shuffle_labels": False,
+                "train_seed": int(seed),
+                "split": split,
+            })
+    return rows
+
+
 def shard(rows: Sequence[Dict], shard_id: int, num_shards: int) -> List[Dict]:
     """Round-robin slice. Every row lands in exactly one shard."""
     if num_shards < 1:
