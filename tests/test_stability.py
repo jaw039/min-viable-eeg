@@ -92,3 +92,15 @@ def test_summarize_lists_frozen_set():
     text = summarize(shared, boot, ps, [2])
     assert "k= 2" in text
     assert "B" in text and "E" in text
+
+
+def test_write_stability_refuses_to_overwrite(tmp_path):
+    """The frozen artifact must not be regenerated in place, like the other
+    three writers. The guard runs before any data is read."""
+    from src.stability import write_stability
+
+    out = tmp_path / "stability.json"
+    out.write_text("{}")
+    with pytest.raises(SystemExit):
+        write_stability({}, out_path=out)
+    assert out.read_text() == "{}"

@@ -147,6 +147,12 @@ def write_stability(
     ranking_path: Path = RANKING_PATH,
     out_path: Path = STABILITY_PATH,
 ) -> None:
+    if out_path.exists():
+        print("REFUSING to overwrite existing {}".format(out_path))
+        print("Stability results are frozen once generated. If you really intend to")
+        print("regenerate them, delete the file manually first:")
+        print("    rm {}".format(out_path))
+        raise SystemExit(1)
     with open(ranking_path) as f:
         ranking = json.load(f)
     shared_ranked = ranking["channels"]
