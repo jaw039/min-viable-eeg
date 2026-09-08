@@ -24,11 +24,11 @@ you eligible for AWS credit or an A100 grant later.
 Whoever has `data/processed/` populated uploads it as a **private** dataset:
 
 - Build the zip with `python scripts/make_kaggle_bundle.py --cache`. It
-  contains `cache/processed/S###/{X,y}.npy` plus `cache/splits.json`,
-  `cache/channel_ranking.json` and `cache/budgets.json` (copied from
-  `artifacts/`). Datasets → New Dataset → upload it. Kaggle unzips archives
-  on its side and keeps the zip's top-level folder, which is why the mount
-  path ends in `/cache`.
+  is `cache.zip`, holding `processed/S###/{X,y}.npy` plus `splits.json`,
+  `channel_ranking.json` and `budgets.json` (copied from `artifacts/`).
+  Datasets → New Dataset → upload it. Kaggle extracts an uploaded zip into a
+  folder named after the file, which is why the mount path ends in `/cache`;
+  keep the file name.
 - Name it something stable, e.g. `mve-eegmmidb-cache`. Keep it **Private** and
   add the other three as collaborators, so every account reads the *same
   versioned copy* and no number depends on whose local cache produced it.
@@ -41,8 +41,10 @@ Either option works; pick one and be consistent.
 
 - **Zip snapshot** (simplest, what the team uses):
   `python scripts/make_kaggle_bundle.py --code` writes a `git archive` of
-  HEAD (it refuses a dirty tree) under a `code/` folder; upload it as a
-  second private dataset (`mve-code`). The dataset version pins the code.
+  HEAD (it refuses a dirty tree) as `code.zip`; upload it as a second private
+  dataset (`mve-code`). The dataset version pins the code. For a new version,
+  remove the previous `code.zip` from the version in the upload dialog so the
+  new one replaces it, and keep the file name so it still mounts at `/code`.
   Result rows from a snapshot record `git_commit: "unknown"` because the
   archive has no `.git`; the dataset version number is the pin.
 - **Git clone**: Add-ons → Secrets → add `GITHUB_TOKEN` (a fine-grained,
@@ -201,7 +203,7 @@ anyone's memory.
 | Image | `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461` |
 | Environment stamped in rows | `python3.12.13 torch2.10.0+cu128 numpy2.0.2` |
 | Config hash stamped in rows | `af8fbd091329` |
-| Mount paths | `/kaggle/input/datasets/jackiewang2323/mve-eegmmidb-cache/cache`, `/kaggle/input/datasets/jackiewang2323/mve-code/code` |
+| Mount paths | `/kaggle/input/datasets/jackiewang2323/mve-eegmmidb-cache/cache`, `/kaggle/input/datasets/jackiewang2323/mve-code/code` (the folder is named after the uploaded zip: `cache.zip`, `code.zip`) |
 
 Per-shard outcomes (version numbers, wall time, row counts, file hashes) are
 in [results/README.md](../results/README.md).

@@ -1,14 +1,17 @@
 """Build the two zip files the Kaggle sweep runs from.
 
-    dist/mve-code/mve-code.zip                    code/...   git archive of HEAD
-    dist/mve-eegmmidb-cache/mve-eegmmidb-cache.zip cache/processed/S###/{X,y}.npy
-                                                   cache/{splits,channel_ranking,budgets}.json
+    dist/mve-code/code.zip               git archive of HEAD, files at the zip root
+    dist/mve-eegmmidb-cache/cache.zip    processed/S###/{X,y}.npy and
+                                         {splits,channel_ranking,budgets}.json at the root
 
-Kaggle unpacks an uploaded zip and keeps its top-level folder, so these mount
-at /kaggle/input/datasets/<owner>/mve-code/code and
-/kaggle/input/datasets/<owner>/mve-eegmmidb-cache/cache, which is what
-notebooks/kaggle_sweep.ipynb expects. A dataset-metadata.json is written next
-to each zip so the Kaggle CLI can upload the folder as a private dataset.
+Kaggle extracts an uploaded zip into a folder named after the file (code.zip
+becomes code/), so these mount at /kaggle/input/datasets/<owner>/mve-code/code
+and /kaggle/input/datasets/<owner>/mve-eegmmidb-cache/cache, which is what
+notebooks/kaggle_sweep.ipynb expects. Keep the file names: a zip called
+anything else lands in a differently named folder. A dataset-metadata.json is
+written next to each zip so the Kaggle CLI can upload the folder as a private
+dataset; when uploading a new version in the browser, remove the previous
+code.zip from the version so the new one replaces it.
 
 Usage:
     python scripts/make_kaggle_bundle.py --code            # refuses a dirty tree
@@ -57,8 +60,8 @@ def build_code(out: Path, owner: str, allow_dirty: bool) -> Path:
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True).strip()
     folder = out / "mve-code"
     folder.mkdir(parents=True, exist_ok=True)
-    zip_path = folder / "mve-code.zip"
-    subprocess.check_call(["git", "archive", "--format=zip", "--prefix=code/",
+    zip_path = folder / "code.zip"
+    subprocess.check_call(["git", "archive", "--format=zip",
                            "-o", str(zip_path), "HEAD"], cwd=REPO_ROOT)
     (folder / "COMMIT").write_text(head + "\n")
     metadata(folder, "mve-code", owner)
@@ -74,15 +77,15 @@ def build_cache(out: Path, owner: str) -> Path:
         raise SystemExit("no cached subjects under {}; run scripts/cache_preprocessed.py".format(processed))
     folder = out / "mve-eegmmidb-cache"
     folder.mkdir(parents=True, exist_ok=True)
-    zip_path = folder / "mve-eegmmidb-cache.zip"
+    zip_path = folder / "cache.zip"
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as z:
         for name in CACHE_ARTIFACTS:
-            z.write(ARTIFACTS_DIR / name, "cache/{}".format(name))
+            z.write(ARTIFACTS_DIR / name, name)
         for extra in processed.glob("*.jsonl"):
-            z.write(extra, "cache/processed/{}".format(extra.name))
+            z.write(extra, "processed/{}".format(extra.name))
         for s in subjects:
             for f in ("X.npy", "y.npy"):
-                z.write(s / f, "cache/processed/{}/{}".format(s.name, f))
+                z.write(s / f, "processed/{}/{}".format(s.name, f))
     metadata(folder, "mve-eegmmidb-cache", owner)
     print("cache  : {}  {} subjects".format(zip_path, len(subjects)))
     return zip_path
