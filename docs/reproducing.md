@@ -124,4 +124,7 @@ no full-montage reference, and the report would fail on it.
 Kaggle, GPU T4 ×2, image
 `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461`,
 `python3.12.13 torch2.10.0+cu128 numpy2.0.2` (stamped in every row as
-`environment`). Local analysis: Python 3.12.7 with `requirements.txt`.
+`environment`). The validation rows ran from `mve-code` v1 (commit
+`e35a506`) and stamp `git_commit: "unknown"`; the test rows
+(`results/shard_0_of_1_test.jsonl`) ran from v5 and stamp commit
+`5ad044b`. Local analysis: Python 3.12.7 with `requirements.txt`.

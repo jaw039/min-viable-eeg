@@ -8,9 +8,9 @@ and audit tools that turn those rows into paper numbers.
 
 **Status (2026-09-08).** The pipeline and its frozen artifacts are final. The
 validation sweep ran on Kaggle in four shards; all 691 conditions are in
-`results/` and pass the audit with complete coverage. k\* has been chosen on
-validation and the confirmatory test manifest is written, but no test-split
-row exists yet, so the headline is not final. The run log is
+`results/` and pass the audit with complete coverage. k\* was chosen on
+validation and then evaluated once on the test split: 32 electrodes retain
+0.897 of the 64-electrode κ there, against a 0.90 target. The run log is
 [results/README.md](results/README.md).
 
 | Stage | State |
@@ -20,7 +20,7 @@ row exists yet, so the headline is not final. The run log is
 | Experiment manifest, 691 validation conditions | committed in [`manifests/`](manifests/) |
 | Validation sweep | complete: 691/691 conditions, 0 errors, audit PASS |
 | k\* selection on validation | k\*(0.90) = 32; unstable across seeds (16–64), so the curve is the result |
-| Test split, evaluated once at k\* | manifest written (`manifests/manifest_test.jsonl`), not run |
+| Test split, evaluated once at k\* | done: 10/10 conditions, 0 errors, audit PASS; κ₃₂ / κ₆₄ = 0.897 on test |
 | Manuscript | drafts in `paper/`; every unmeasured number stays bracketed |
 
 ## Research question
@@ -175,7 +175,7 @@ shard per saved Version. Only a saved Version's output persists.
 ## Validation results
 
 Validation split, complete sweep, every number from provenance-stamped rows
-(`results/kstar_report.json`). The test split has not been run.
+(`results/kstar_report.json`). The test result follows in the next section.
 
 - **The negative control passes.** Permuted labels give κ = 0.007.
 - **k\*(0.90) = 32 on validation, and it is not stable.** κ_full is
@@ -212,6 +212,28 @@ Validation split, complete sweep, every number from provenance-stamped rows
   scalp EEG.
 - **EEGNet-style, not a faithful port.** No max-norm constraints; kernel
   length 64 rather than fs/2.
+
+## Test result (confirmatory, evaluated once)
+
+The test split was run once, at the validation-chosen k\* = 32 and the
+64-channel reference, five training seeds each
+(`results/shard_0_of_1_test.jsonl`; `results/kstar_report.json`, section
+`test_report`).
+
+| Budget | Test κ (mean ± sd over 5 seeds) |
+| --- | --- |
+| 32 (k\*) | 0.292 ± 0.061 |
+| 64 (full montage) | 0.326 ± 0.032 |
+
+- **32 electrodes retain 0.897 of the full-montage κ on test**, just below
+  the 0.90 target k\* was chosen against. Per matched seed the ratio runs
+  from 0.76 to 1.11 (mean 0.89 ± 0.14): a point estimate with a wide
+  interval, in line with the validation verdict that k\* is unstable.
+- **The test subjects are harder.** κ at 64 channels is 0.326 on test
+  against 0.443 on validation; per-subject κ spans 0.06–0.66 (median 0.28).
+  The budget claim is about the retained fraction, not the absolute κ.
+- No other budget was evaluated on test, so these rows allow no post-hoc
+  choice of k\*.
 
 ## Open items before submission
 

@@ -204,6 +204,7 @@ anyone's memory.
 | --- | --- |
 | Cache dataset | `jackiewang2323/mve-eegmmidb-cache`, version 1, 724 MB, uploaded 2026-09-05 |
 | Code dataset | `jackiewang2323/mve-code`, version 1 = commit `e35a506`, uploaded 2026-09-05 |
+| Code dataset, test run | `jackiewang2323/mve-code`, version 5 = commit `5ad044b`, uploaded 2026-09-08; kernel Version 9, GPU T4 ×2, 19:08–19:18 UTC |
 | Notebook | `jackiewang2323/notebookeb3bd89e45` (this repository's `notebooks/kaggle_sweep.ipynb`) |
 | Accelerator | GPU T4 ×2 |
 | Image | `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461` |

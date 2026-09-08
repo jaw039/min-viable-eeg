@@ -1,6 +1,6 @@
 {
   "threshold": 0.9,
-  "n_rows": 691,
+  "n_rows": 701,
   "n_errors": 0,
   "negative_control": {
     "present": true,
@@ -736,5 +736,16 @@
     "missing_by_kind": {},
     "missing_examples": [],
     "note": "sweep complete"
+  },
+  "test_report": {
+    "kstar": 32,
+    "metric": "kappa",
+    "test_kappa_at_kstar": 0.291974,
+    "test_kappa_full": 0.325595,
+    "retained_fraction": 0.89674,
+    "n_runs_at_kstar": 5,
+    "n_runs_full": 5,
+    "budgets_searched": null,
+    "note": "k* was chosen on validation; this report evaluates it once on test"
   }
 }
