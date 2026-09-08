@@ -3,7 +3,7 @@ PY ?= .venv/bin/python
 SHARD ?= 0
 NUM_SHARDS ?= 4
 
-.PHONY: help test audit analyze tables data cache figures artifacts manifest smoke shard kaggle-bundle
+.PHONY: test-manifest audit-complete help test audit analyze tables data cache figures artifacts manifest smoke shard kaggle-bundle
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## / - /'
@@ -41,6 +41,12 @@ smoke: ## one short training run to time the hardware
 
 shard: ## run one shard locally: make shard SHARD=0
 	$(PY) scripts/run_sweep.py --manifest --shard-id $(SHARD) --num-shards $(NUM_SHARDS)
+
+test-manifest: ## write manifests/manifest_test.jsonl from the k* in results/kstar_report.json
+	$(PY) scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json
+
+audit-complete: ## the audit, failing while the sweep is incomplete
+	$(PY) scripts/audit_results.py --results 'results/*.jsonl' --require-complete
 
 kaggle-bundle: ## build the code and cache zips for Kaggle under dist/
 	$(PY) scripts/make_kaggle_bundle.py --code --cache

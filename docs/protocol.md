@@ -78,8 +78,9 @@ one.
   to 100 epochs, early-stopping patience 10. The training loop is
   `src/training.py`.
 - Early stopping uses an inner holdout of 15% of the *training* subjects
-  (11 of 74), drawn per train seed. The validation split is never used for
-  model selection.
+  (11 of 74), drawn once with the split seed (42) and therefore identical
+  for every condition; the training seed controls initialisation and
+  batching. The validation split is never used for model selection.
 - Train seeds: 42, 123, 456, 789, 101112. Every condition is run at all five.
 - Distillation (`src/distillation.py`): the student at budget k learns from a
   64-channel teacher trained with the same seed (α 0.5, temperature 4.0);

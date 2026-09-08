@@ -120,7 +120,7 @@ paper/         manuscript drafts
 git clone https://github.com/jaw039/min-viable-eeg && cd min-viable-eeg
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q          # 100 passed, 6 skipped; the skips need the raw EDFs
+pytest -q          # all pass; six loader tests skip until the raw EDFs are downloaded
 ```
 
 Everything below the sweep works without the raw data, because the frozen
@@ -153,7 +153,15 @@ re-derives the channel set from the frozen ranking, checks the evaluated
 subjects against `artifacts/splits.json`, checks ranking provenance and config
 hash, and reports coverage against the manifest. It exits non-zero on any
 violation. k\* claims additionally cite `results/kstar_report.json`, which
-records the budget curve, per-seed k\*, threshold sensitivity and coverage.
+records the budget curve, per-seed k\*, threshold sensitivity and coverage,
+and flags the report as provisional while any budget lacks a planned seed.
+
+The test split is run from `manifests/manifest_test.jsonl`, written by
+`scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json`
+(or `--kstar <k>`). It holds the chosen budget and the 64-channel reference
+at every planned seed and nothing else, so no other budget is ever evaluated
+on test and the retained fraction is computable there. Controls stay on
+validation.
 
 ## Running the sweep on Kaggle
 

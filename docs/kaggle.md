@@ -116,12 +116,19 @@ heterogeneity, and a coverage report. It writes `results/kstar_report.json`.
 Run the test split **once**, at the k\* the validation curve chose:
 
 ```bash
-python scripts/run_sweep.py --write-manifest --split test --budget <k*>
+python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json
+cat manifests/manifest_test.jsonl        # k* and k=64, ranked, scratch, every planned seed; nothing else
 python scripts/run_sweep.py --manifest --split test --shard-id 0 --num-shards 1
+python scripts/audit_results.py --results 'results/*.jsonl'
 python scripts/analyze.py --results 'results/*.jsonl' --test-report
 ```
 
-`--write-manifest --split test` refuses to run without `--budget`, on purpose.
+Writing a test manifest through `--write-manifest` is refused on purpose: the
+test manifest comes only from `--write-test-manifest` (or `--kstar <k>`),
+which holds k\* and the 64-channel reference and nothing else, so the
+retained fraction is computable on test and no other budget is evaluated
+there. Controls (random, sensorimotor, distillation, label shuffle) stay on
+validation.
 
 ---
 

@@ -10,7 +10,7 @@ Needs Python 3.12 and the pinned requirements. No EEG data, no GPU.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q                                                   # 100 passed, 6 skipped
+pytest -q                                                   # all pass; six loader tests skip without the raw EDFs
 python scripts/audit_results.py --results 'results/*.jsonl' # RESULT: PASS
 python scripts/analyze.py --results 'results/*.jsonl'       # writes results/kstar_report.json
 python scripts/channel_tables.py --out paper/channel_tables.md
@@ -66,7 +66,8 @@ python - <<'PY'
 import json
 for name in ("splits", "channel_ranking", "budgets", "stability"):
     a = json.load(open(f"artifacts/{name}.json")); b = json.load(open(f"/tmp/regen/orig/{name}.json"))
-    a.pop("provenance"); b.pop("provenance")
+    for key in ("provenance", "ranking_provenance"):   # commit, hash and timestamp legitimately differ
+        a.pop(key, None); b.pop(key, None)
     print(f"{name:<18}", "identical" if a == b else "DIFFERENT")
 PY
 git checkout -- artifacts/      # restore the committed, provenance-stamped originals
@@ -81,12 +82,15 @@ Needs a GPU. The manifest is committed, so nothing has to be regenerated:
 
 ```bash
 python scripts/run_sweep.py --smoke-test                                  # one short k=8 run
-python scripts/run_sweep.py --manifest --shard-id 0 --num-shards 4        # ~70 min on T4 ×2
+python scripts/run_sweep.py --manifest --shard-id 0 --num-shards 4 --results-dir results-repro
 ```
 
-Repeat for shards 1–3, or use Kaggle as described in [kaggle.md](kaggle.md).
-Rows append to `results/shard_<i>_of_4_val.jsonl` and completed conditions
-are skipped on a re-run. Expect channel sets, splits and seeds to match the
+Repeat for shards 1–3 (about 70 minutes each on a T4 ×2), or use Kaggle as
+described in [kaggle.md](kaggle.md). `--results-dir` matters: the committed
+rows live in `results/`, and a run without it would find every condition
+already done and skip them all. Rows append to
+`results-repro/shard_<i>_of_4_val.jsonl` (ignored by git) and completed
+conditions are skipped on a re-run, so an interrupted shard resumes. Expect channel sets, splits and seeds to match the
 committed rows exactly (the audit checks this) and κ to match closely but not
 bit-for-bit across GPU models and CUDA versions.
 
@@ -98,14 +102,20 @@ different `config_sha256` in one shard makes the audit fail on purpose.
 Only after all four validation shards are in and k\* has been chosen:
 
 ```bash
-python scripts/analyze.py --results 'results/*.jsonl'          # reports k*
-python scripts/run_sweep.py --write-manifest --split test --budget <k*>
+python scripts/analyze.py --results 'results/*.jsonl'          # chooses k*, writes results/kstar_report.json
+python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json
+cat manifests/manifest_test.jsonl                              # k* and k=64, ranked, scratch, 5 seeds each
 python scripts/run_sweep.py --manifest --split test --shard-id 0 --num-shards 1
+python scripts/audit_results.py --results 'results/*.jsonl'
 python scripts/analyze.py --results 'results/*.jsonl' --test-report
 ```
 
-The test manifest writer refuses to run without `--budget`, so the test
-split cannot be swept.
+`--write-test-manifest` holds exactly the chosen budget and the 64-channel
+reference at every planned seed, so the retained fraction can be computed
+on test and no other budget is ever evaluated there. `--kstar <k>` replaces
+`--kstar-report` when the report is not at hand. Writing a test manifest
+through `--write-manifest` is refused: the generic matrix at one budget has
+no full-montage reference, and the report would fail on it.
 
 ## Environment used for the committed rows
 

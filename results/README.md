@@ -47,4 +47,11 @@ distillation arms are in shards 2 and 3.
 ## Test split
 
 Not run. It will be evaluated once, at the k\* chosen on validation, and
-recorded here with the same fields.
+recorded here with the same fields:
+
+```bash
+python scripts/run_sweep.py --write-test-manifest --kstar-report results/kstar_report.json
+python scripts/run_sweep.py --manifest --split test --shard-id 0 --num-shards 1
+python scripts/audit_results.py --results 'results/*.jsonl'
+python scripts/analyze.py --results 'results/*.jsonl' --test-report
+```
