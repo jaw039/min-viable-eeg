@@ -166,3 +166,62 @@ def test_subject_heterogeneity_surfaces_near_chance_subjects():
     assert out["subjects_near_chance"] == ["S002"]
     assert out["n_subjects"] == 2
     assert "near chance" in out["note"]
+
+
+# ------------------------------------------------------------------ regressions
+
+
+def test_ranked_vs_random_counts_subsets_not_training_runs():
+    """Repeating a subset at several training seeds draws no new subset.
+    Three subsets at two seeds each must give N=3 and a floor of 1/4, not
+    N=6 and 1/7."""
+    rows = [row(8, 0.40, seed=42), row(8, 0.42, seed=123)]
+    for i in range(3):
+        for seed in (42, 123):
+            rows.append(row(8, 0.10 + 0.01 * i, selection="random", sel_seed=i, seed=seed))
+    out = ranked_vs_random(rows, 8)
+    assert out["random_n"] == 3
+    assert out["random_rows"] == 6
+    assert out["resolution_floor"] == pytest.approx(1 / 4)
+    assert out["empirical_p"] == pytest.approx(1 / 4)
+    assert out["provisional"] is False
+
+
+def test_ranked_vs_random_compares_subset_means():
+    """A subset that beats ranked at one seed and loses at another counts by
+    its mean, not twice."""
+    rows = [row(8, 0.35, seed=42), row(8, 0.35, seed=123)]
+    rows += [row(8, 0.50, selection="random", sel_seed=0, seed=42),
+             row(8, 0.10, selection="random", sel_seed=0, seed=123),
+             row(8, 0.20, selection="random", sel_seed=1, seed=42),
+             row(8, 0.20, selection="random", sel_seed=1, seed=123)]
+    out = ranked_vs_random(rows, 8)
+    assert out["n_random_at_or_above_ranked"] == 0
+    assert out["empirical_p"] == pytest.approx(1 / 3)
+    assert out["random_max"] == pytest.approx(0.30)
+
+
+def test_ranked_vs_random_flags_uneven_seed_coverage_as_provisional():
+    rows = [row(8, 0.40, seed=42), row(8, 0.40, seed=123)]
+    rows += [row(8, 0.10, selection="random", sel_seed=0, seed=42),
+             row(8, 0.10, selection="random", sel_seed=0, seed=123),
+             row(8, 0.10, selection="random", sel_seed=1, seed=42)]
+    out = ranked_vs_random(rows, 8)
+    assert out["provisional"] is True
+    assert out["train_seeds_per_subset"] == [1, 2]
+    assert "provisional" in out["interpretation"]
+
+
+def test_subject_heterogeneity_uses_only_the_headline_arm():
+    """Distilled students and the label-shuffle control must not be averaged
+    into the scratch per-subject mean."""
+    rows = [
+        dict(row(64, 0.30), kappa_per_subject={"S001": 0.60, "S002": 0.40}),
+        dict(row(64, 0.00, shuffle_labels=True), kappa_per_subject={"S001": 0.0, "S002": 0.0}),
+        dict(row(64, 0.10, training="distill"), kappa_per_subject={"S001": 0.1, "S002": 0.1}),
+    ]
+    out = subject_heterogeneity(rows, 64)
+    assert out["per_subject_mean_kappa"] == {"S001": 0.6, "S002": 0.4}
+    assert out["n_runs"] == 1
+    assert out["rows_excluded_other_arms"] == 2
+    assert out["training"] == "scratch"

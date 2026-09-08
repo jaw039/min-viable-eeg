@@ -42,7 +42,7 @@ def read_rows(patterns):
     return rows
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--results", nargs="+", required=True)
@@ -52,7 +52,11 @@ def main() -> None:
                    help="evaluate test once at the k* chosen on validation")
     p.add_argument("--emit-followup", action="store_true",
                    help="print the conditions worth running next")
-    args = p.parse_args()
+    return p
+
+
+def main() -> None:
+    args = build_parser().parse_args()
 
     cfg = load_config()
     threshold = args.threshold or float(cfg["eval"]["threshold"])
@@ -85,11 +89,17 @@ def main() -> None:
     report = {"threshold": threshold, "n_rows": len(ok), "n_errors": len(errs)}
     try:
         ks = select_kstar(val, threshold=threshold,
-                          thresholds=tuple(cfg["eval"]["threshold_sensitivity"]))
+                          thresholds=tuple(cfg["eval"]["threshold_sensitivity"]),
+                          planned_seeds=cfg["sweep"]["train_seeds"])
         report["kstar"] = ks
         print("K* (validation only)")
-        print("  kappa_full = {:.4f} +/- {:.4f} over {} seeds".format(
-            ks["kappa_full"], ks["kappa_full_std"], ks["n_seeds"]))
+        print("  kappa_full = {:.4f} +/- {:.4f} over {} of {} planned full-montage runs{}".format(
+            ks["kappa_full"], ks["kappa_full_std"], ks["n_full_montage_runs"],
+            len(ks["planned_seeds"] or []),
+            "  <-- PROVISIONAL: sweep incomplete" if ks["provisional"] else ""))
+        if ks["incomplete_budgets"]:
+            print("  budgets short of {} planned runs: {}".format(
+                len(ks["planned_seeds"]), ks["incomplete_budgets"]))
         print("  k*(tau={:.2f}) = {}".format(threshold, ks["kstar"]))
         print("  per seed        : {}".format(ks["kstar_per_seed"]))
         print("  threshold sweep : {}".format(ks["threshold_sensitivity"]))
@@ -114,9 +124,11 @@ def main() -> None:
             continue
         comparisons[str(k)] = c
         flag = "  <-- AT RESOLUTION FLOOR" if c["p_is_at_resolution_floor"] else ""
-        print("  k={:<3} ranked={:.4f}  random={:.4f}+/-{:.4f}  p={:.4f} (floor {:.4f}){}".format(
-            k, c["ranked_mean"], c["random_mean"], c["random_std"],
-            c["empirical_p"], c["resolution_floor"], flag))
+        prov = ("  (provisional: {}-{} seeds per subset)".format(*c["train_seeds_per_subset"])
+                if c.get("provisional") else "")
+        print("  k={:<3} ranked={:.4f}  random={:.4f}+/-{:.4f} over {} subsets  p={:.4f} (floor {:.4f}){}{}".format(
+            k, c["ranked_mean"], c["random_mean"], c["random_std"], c["random_n"],
+            c["empirical_p"], c["resolution_floor"], flag, prov))
     report["ranked_vs_random"] = comparisons
     print()
 
@@ -156,7 +168,7 @@ def main() -> None:
     if het:
         k0 = sorted(het, key=lambda s: int(s))[-1]
         h = het[k0]
-        print("SUBJECT HETEROGENEITY (k={})".format(k0))
+        print("SUBJECT HETEROGENEITY (k={}, ranked scratch runs only)".format(k0))
         print("  mean={:.4f} median={:.4f} range=[{:.4f}, {:.4f}] over {} subjects".format(
             h["mean"], h["median"], h["min"], h["max"], h["n_subjects"]))
         print("  {}".format(h["note"]))

@@ -113,6 +113,7 @@ def select_kstar(
     metric: str = "kappa",
     full_k: int = FULL_MONTAGE_K,
     thresholds: Sequence[float] = DEFAULT_THRESHOLDS,
+    planned_seeds: Optional[Sequence[int]] = None,
 ) -> Dict:
     """Choose k* on validation and report how stable that choice is."""
     rows = list(rows)
@@ -167,6 +168,17 @@ def select_kstar(
             "integer alone".format(sorted(distinct_thresh))
         )
 
+    # How much of the planned sweep the curve rests on. n_seeds counts seeds seen
+    # at any budget; the full-montage count is what kappa_full actually averages.
+    planned = sorted(int(s) for s in planned_seeds) if planned_seeds else None
+    incomplete = (
+        {str(k): c["n"] for k, c in curve.items() if c["n"] < len(planned)}
+        if planned else {}
+    )
+    provisional = bool(incomplete) if planned else None
+    full_seeds = sorted({int(r["train_seed"]) for r in eligible
+                         if int(r["budget_k"]) == int(full_k)})
+
     return {
         "kstar": kstar,
         "threshold": threshold,
@@ -175,6 +187,11 @@ def select_kstar(
         "kappa_full_std": curve[full_k]["std"],
         "n_seeds": len(seeds),
         "seeds": seeds,
+        "n_full_montage_runs": curve[full_k]["n"],
+        "full_montage_seeds": full_seeds,
+        "planned_seeds": planned,
+        "incomplete_budgets": incomplete,
+        "provisional": provisional,
         "budget_curve": curve,
         "kstar_per_seed": per_seed,
         "threshold_sensitivity": sensitivity,

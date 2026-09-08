@@ -31,52 +31,84 @@ def resolution_floor(n: int) -> float:
 def ranked_vs_random(
     rows: Sequence[Dict], budget_k: int, split: str = "val", metric: str = "kappa"
 ) -> Dict:
-    """Compare the ranked selection against the random-subset distribution."""
-    ranked = [
-        float(r[metric])
-        for r in _rows(rows, selection="ranked", split=split, budget_k=budget_k)
-        if r.get("training", "scratch") == "scratch" and not r.get("shuffle_labels")
-    ]
-    random_vals = [
-        float(r[metric])
-        for r in _rows(rows, selection="random", split=split, budget_k=budget_k)
-        if r.get("training", "scratch") == "scratch" and not r.get("shuffle_labels")
-    ]
+    """Compare the ranked selection against the random-subset distribution.
 
-    if not ranked:
+    The unit of the comparison is the electrode subset. Training the same
+    subset at several seeds draws no new subset, so each subset is first
+    averaged over its training seeds and N is the number of subsets. Counting
+    rows instead would report a floor of 1/101 for a design that can only
+    resolve 1/21.
+    """
+    ranked_rows = [
+        r for r in _rows(rows, selection="ranked", split=split, budget_k=budget_k)
+        if r.get("training", "scratch") == "scratch" and not r.get("shuffle_labels")
+    ]
+    random_rows = [
+        r for r in _rows(rows, selection="random", split=split, budget_k=budget_k)
+        if r.get("training", "scratch") == "scratch" and not r.get("shuffle_labels")
+    ]
+    if not ranked_rows:
         raise ValueError("No ranked rows at k={} on {}".format(budget_k, split))
-    if not random_vals:
+    if not random_rows:
         raise ValueError("No random rows at k={} on {}".format(budget_k, split))
 
-    obs = statistics.fmean(ranked)
-    n = len(random_vals)
-    n_ge = sum(1 for v in random_vals if v >= obs)
+    by_subset: Dict[int, List[float]] = {}
+    for r in random_rows:
+        if r.get("selection_seed") is None:
+            raise ValueError(
+                "random row without a selection_seed cannot be attributed to a subset"
+            )
+        by_subset.setdefault(int(r["selection_seed"]), []).append(float(r[metric]))
+    subset_means = [statistics.fmean(v) for _, v in sorted(by_subset.items())]
+    seeds_per_subset = [len(v) for _, v in sorted(by_subset.items())]
+
+    ranked_vals = [float(r[metric]) for r in ranked_rows]
+    obs = statistics.fmean(ranked_vals)
+    n = len(subset_means)
+    n_ge = sum(1 for v in subset_means if v >= obs)
     p = (n_ge + 1) / (n + 1)
     floor = resolution_floor(n)
     at_floor = abs(p - floor) < 1e-12
+    # Uneven seed coverage means the sweep is still running: report, do not hide.
+    provisional = (
+        min(seeds_per_subset) != max(seeds_per_subset)
+        or len(ranked_vals) != max(seeds_per_subset)
+    )
+
+    interpretation = (
+        "p equals the smallest value {} random subsets can produce; this is "
+        "the resolution of the design, not evidence of an effect. Increase "
+        "the subset count to resolve further.".format(n)
+        if at_floor
+        else "p = {:.4f} against a floor of {:.4f}".format(p, floor)
+    )
+    if provisional:
+        interpretation += (
+            "; provisional: subsets carry {}-{} training seeds and ranked carries "
+            "{}, so the sweep is incomplete".format(
+                min(seeds_per_subset), max(seeds_per_subset), len(ranked_vals))
+        )
 
     return {
         "budget_k": int(budget_k),
         "split": split,
         "metric": metric,
+        "unit": "subset mean over training seeds",
         "ranked_mean": round(obs, 6),
-        "ranked_n": len(ranked),
-        "random_mean": round(statistics.fmean(random_vals), 6),
-        "random_std": round(statistics.pstdev(random_vals) if n > 1 else 0.0, 6),
-        "random_min": round(min(random_vals), 6),
-        "random_max": round(max(random_vals), 6),
+        "ranked_n": len(ranked_vals),
+        "random_mean": round(statistics.fmean(subset_means), 6),
+        "random_std": round(statistics.pstdev(subset_means) if n > 1 else 0.0, 6),
+        "random_min": round(min(subset_means), 6),
+        "random_max": round(max(subset_means), 6),
         "random_n": n,
+        "random_rows": len(random_rows),
+        "train_seeds_per_subset": [min(seeds_per_subset), max(seeds_per_subset)],
         "n_random_at_or_above_ranked": n_ge,
         "empirical_p": round(p, 6),
         "resolution_floor": round(floor, 6),
         "p_is_at_resolution_floor": at_floor,
-        "interpretation": (
-            "p equals the smallest value {} random subsets can produce; this is "
-            "the resolution of the design, not evidence of an effect. Increase "
-            "the subset count to resolve further.".format(n)
-            if at_floor
-            else "p = {:.4f} against a floor of {:.4f}".format(p, floor)
-        ),
+        "provisional": provisional,
+        "interpretation": interpretation,
     }
 
 
@@ -234,14 +266,26 @@ def coverage_report(planned: Sequence[Dict], completed: Sequence[Dict]) -> Dict:
     }
 
 
-def subject_heterogeneity(rows: Sequence[Dict], budget_k: int, split: str = "val") -> Dict:
+def subject_heterogeneity(
+    rows: Sequence[Dict], budget_k: int, split: str = "val", training: str = "scratch"
+) -> Dict:
     """How much the population mean hides.
 
     52 of 74 training subjects share no electrode with the shared top-4, so the
     question of whether a mean describes anybody is live for this dataset.
+
+    Only the headline arm feeds the summary: ranked, trained as `training`
+    (scratch by default), labels intact. Distilled students and the
+    label-shuffle control answer different questions and are excluded rather
+    than averaged into the same per-subject mean.
     """
     per_subject: Dict[str, List[float]] = {}
+    n_runs = excluded = 0
     for r in _rows(rows, selection="ranked", split=split, budget_k=budget_k):
+        if r.get("training", "scratch") != training or r.get("shuffle_labels"):
+            excluded += 1
+            continue
+        n_runs += 1
         for s, k in (r.get("kappa_per_subject") or {}).items():
             per_subject.setdefault(s, []).append(float(k))
     if not per_subject:
@@ -253,6 +297,9 @@ def subject_heterogeneity(rows: Sequence[Dict], budget_k: int, split: str = "val
         "available": True,
         "budget_k": int(budget_k),
         "split": split,
+        "training": training,
+        "n_runs": n_runs,
+        "rows_excluded_other_arms": excluded,
         "n_subjects": len(means),
         "mean": round(statistics.fmean(vals), 6),
         "median": round(statistics.median(vals), 6),

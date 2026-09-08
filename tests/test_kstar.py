@@ -135,3 +135,37 @@ def test_only_ranked_scratch_rows_feed_the_curve():
 def test_empty_input_is_an_error():
     with pytest.raises(ValueError, match="No eligible rows"):
         select_kstar([row(4, 0.2, selection="random", selection_seed=0)])
+
+
+# --- honest counts on a partial sweep ---------------------------------------
+
+
+def test_kstar_reports_the_actual_full_montage_run_count():
+    """Two of five planned full-montage runs must not be reported as five
+    seeds. n_seeds counts seeds seen at any budget; kappa_full averages only
+    the k=64 rows."""
+    rows = (curve_rows({4: 0.10, 64: 0.40}, seed=42)
+            + curve_rows({4: 0.10, 8: 0.30, 64: 0.42}, seed=123)
+            + [row(8, 0.30, seed=456)])
+    out = select_kstar(rows, threshold=0.90, planned_seeds=[42, 123, 456, 789, 101112])
+    assert out["n_full_montage_runs"] == 2
+    assert out["full_montage_seeds"] == [42, 123]
+    assert out["n_seeds"] == 3
+    assert out["provisional"] is True
+    assert out["incomplete_budgets"] == {"4": 2, "8": 2, "64": 2}
+
+
+def test_kstar_is_not_provisional_when_every_budget_has_every_planned_seed():
+    rows = []
+    for s in (1, 2):
+        rows += curve_rows({4: 0.10, 64: 0.40}, seed=s)
+    out = select_kstar(rows, planned_seeds=[1, 2])
+    assert out["provisional"] is False
+    assert out["incomplete_budgets"] == {}
+    assert out["n_full_montage_runs"] == 2
+
+
+def test_kstar_without_planned_seeds_still_counts_full_montage_runs():
+    out = select_kstar(curve_rows({4: 0.10, 64: 0.40}))
+    assert out["n_full_montage_runs"] == 1
+    assert out["provisional"] is None
