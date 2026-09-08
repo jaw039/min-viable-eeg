@@ -17,7 +17,7 @@ shared ranking is built from (src.ranking.train_subject_scores). Two views:
                top-k and (b) the overlap |personal top-k ∩ shared top-k| / k.
                This is the subject-specific vs shared-montage comparison.
 
-Writes stability.json at the repo root (deterministic given --seed; may be
+Writes artifacts/stability.json (deterministic given --seed; may be
 regenerated freely — nothing downstream selects channels from it) and prints
 a summary table. Frozen inputs: channel_ranking.json, budgets in config.yaml.
 """
@@ -30,9 +30,9 @@ from typing import Dict, List, Sequence
 import numpy as np
 
 from src.ranking import RANKING_PATH, aggregate_ranking, train_subject_scores
-from src.utils import REPO_ROOT, load_config, provenance
+from src.utils import ARTIFACTS_DIR, load_config, provenance
 
-STABILITY_PATH = REPO_ROOT / "stability.json"
+STABILITY_PATH = ARTIFACTS_DIR / "stability.json"
 DEFAULT_N_BOOTSTRAP = 200
 DEFAULT_SEED = 42
 
@@ -147,6 +147,12 @@ def write_stability(
     ranking_path: Path = RANKING_PATH,
     out_path: Path = STABILITY_PATH,
 ) -> None:
+    if out_path.exists():
+        print("REFUSING to overwrite existing {}".format(out_path))
+        print("Stability results are frozen once generated. If you really intend to")
+        print("regenerate them, delete the file manually first:")
+        print("    rm {}".format(out_path))
+        raise SystemExit(1)
     with open(ranking_path) as f:
         ranking = json.load(f)
     shared_ranked = ranking["channels"]

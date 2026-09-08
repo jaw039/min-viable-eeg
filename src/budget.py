@@ -7,7 +7,7 @@ ch_names), not ranking order, so downstream code sees a consistent layout.
 
 Run as: python -m src.budget
 
-Writes budgets.json at the repo root: the exact channel set for every budget
+Writes artifacts/budgets.json: the exact channel set for every budget
 in config (both ranking order and montage order), stamped with provenance and
 the commit of the ranking it was cut from. Generated once like
 channel_ranking.json (refuses overwrite; delete manually to regenerate).
@@ -19,10 +19,10 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.utils import REPO_ROOT, load_config, provenance
+from src.utils import ARTIFACTS_DIR, load_config, provenance
 
-RANKING_PATH = REPO_ROOT / "channel_ranking.json"
-BUDGETS_PATH = REPO_ROOT / "budgets.json"
+RANKING_PATH = ARTIFACTS_DIR / "channel_ranking.json"
+BUDGETS_PATH = ARTIFACTS_DIR / "budgets.json"
 
 
 def top_k_channels(ranked_channels: List[str], k: int) -> List[str]:

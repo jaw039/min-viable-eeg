@@ -37,6 +37,7 @@ IDENTITY_FIELDS = (
     "distillation_config",
     "config_sha256",
     "git_commit",
+    "source_sha256",
     "splits_sha256",
     "budgets_sha256",
     "ranking_sha256",
@@ -76,6 +77,7 @@ def build_identity(
 ) -> Dict:
     """The provenance a teacher checkpoint must match to be reusable."""
     from src.utils import config_hash, get_git_commit
+    from src.provenance import source_identity
 
     if teacher_mode not in ("real", "shuffled"):
         raise ValueError("teacher_mode must be 'real' or 'shuffled'")
@@ -94,6 +96,7 @@ def build_identity(
         "distillation_config": dict(config.get("distillation", {})),
         "config_sha256": config_sha256 or config_hash(),
         "git_commit": git_commit or get_git_commit(),
+        "source_sha256": source_identity(),
         "splits_sha256": artifact_hashes.get("splits_sha256"),
         "budgets_sha256": artifact_hashes.get("budgets_sha256"),
         "ranking_sha256": artifact_hashes.get("ranking_sha256"),

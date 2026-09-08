@@ -3,9 +3,13 @@ concatenation, epoch-drop alignment, and protocol guards."""
 
 import copy
 
-import mne
 import numpy as np
 import pytest
+
+# mne is only needed to read EDFs. The experiment path (cache -> runner ->
+# analysis) does not import it, so a Kaggle session or an analysis-only
+# checkout can run the rest of the suite without it.
+mne = pytest.importorskip("mne", reason="mne not installed — EDF tests skipped")
 
 import src.loader as loader_mod
 from src.loader import load_subject

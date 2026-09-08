@@ -1,0 +1,751 @@
+{
+  "threshold": 0.9,
+  "n_rows": 701,
+  "n_errors": 0,
+  "negative_control": {
+    "present": true,
+    "mean_kappa": 0.007138,
+    "n": 1,
+    "passes": true,
+    "note": "floor is where it should be; no evidence of leakage"
+  },
+  "kstar": {
+    "kstar": 32,
+    "threshold": 0.9,
+    "metric": "kappa",
+    "kappa_full": 0.442613,
+    "kappa_full_std": 0.063378,
+    "n_seeds": 5,
+    "seeds": [
+      42,
+      123,
+      456,
+      789,
+      101112
+    ],
+    "n_full_montage_runs": 5,
+    "full_montage_seeds": [
+      42,
+      123,
+      456,
+      789,
+      101112
+    ],
+    "planned_seeds": [
+      42,
+      123,
+      456,
+      789,
+      101112
+    ],
+    "planned_budgets": [
+      4,
+      6,
+      8,
+      12,
+      16,
+      32,
+      64
+    ],
+    "incomplete_budgets": {},
+    "provisional": false,
+    "budget_curve": {
+      "4": {
+        "mean": 0.002138,
+        "std": 0.012789,
+        "n": 5,
+        "values": [
+          0.008057,
+          0.002901,
+          -0.01076,
+          -0.012025,
+          0.022516
+        ]
+      },
+      "6": {
+        "mean": 0.165976,
+        "std": 0.02238,
+        "n": 5,
+        "values": [
+          0.164365,
+          0.196925,
+          0.185017,
+          0.139427,
+          0.144147
+        ]
+      },
+      "8": {
+        "mean": 0.174376,
+        "std": 0.056314,
+        "n": 5,
+        "values": [
+          0.265834,
+          0.212942,
+          0.14659,
+          0.12151,
+          0.125003
+        ]
+      },
+      "12": {
+        "mean": 0.277988,
+        "std": 0.028385,
+        "n": 5,
+        "values": [
+          0.29384,
+          0.31068,
+          0.22748,
+          0.270154,
+          0.287784
+        ]
+      },
+      "16": {
+        "mean": 0.3251,
+        "std": 0.049439,
+        "n": 5,
+        "values": [
+          0.392061,
+          0.338475,
+          0.299335,
+          0.349804,
+          0.245826
+        ]
+      },
+      "32": {
+        "mean": 0.419777,
+        "std": 0.039615,
+        "n": 5,
+        "values": [
+          0.387485,
+          0.407291,
+          0.372968,
+          0.454102,
+          0.477039
+        ]
+      },
+      "64": {
+        "mean": 0.442613,
+        "std": 0.063378,
+        "n": 5,
+        "values": [
+          0.443762,
+          0.435013,
+          0.329687,
+          0.510873,
+          0.49373
+        ]
+      }
+    },
+    "kstar_per_seed": {
+      "42": 16,
+      "123": 32,
+      "456": 64,
+      "789": 32,
+      "101112": 64
+    },
+    "threshold_sensitivity": {
+      "0.85": 32,
+      "0.90": 32,
+      "0.95": 64
+    },
+    "stable_across_seeds": false,
+    "stable_across_thresholds": false,
+    "verdict": "unstable across both seeds and thresholds; the budget curve with confidence intervals is the result, not the integer",
+    "selected_on": "val"
+  },
+  "ranked_vs_random": {
+    "4": {
+      "budget_k": 4,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.002138,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.087938,
+      "random_std": 0.083349,
+      "random_min": -0.007478,
+      "random_max": 0.349327,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 19,
+      "empirical_p": 0.952381,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.9524 against a floor of 0.0476"
+    },
+    "6": {
+      "budget_k": 6,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.165976,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.081106,
+      "random_std": 0.071765,
+      "random_min": -0.014238,
+      "random_max": 0.243275,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 2,
+      "empirical_p": 0.142857,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.1429 against a floor of 0.0476"
+    },
+    "8": {
+      "budget_k": 8,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.174376,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.132022,
+      "random_std": 0.07963,
+      "random_min": -0.011655,
+      "random_max": 0.300307,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 6,
+      "empirical_p": 0.333333,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.3333 against a floor of 0.0476"
+    },
+    "12": {
+      "budget_k": 12,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.277988,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.242065,
+      "random_std": 0.067883,
+      "random_min": 0.139082,
+      "random_max": 0.367416,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 6,
+      "empirical_p": 0.333333,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.3333 against a floor of 0.0476"
+    },
+    "16": {
+      "budget_k": 16,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.3251,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.290512,
+      "random_std": 0.056116,
+      "random_min": 0.186775,
+      "random_max": 0.386682,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 4,
+      "empirical_p": 0.238095,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.2381 against a floor of 0.0476"
+    },
+    "32": {
+      "budget_k": 32,
+      "split": "val",
+      "metric": "kappa",
+      "unit": "subset mean over training seeds",
+      "ranked_mean": 0.419777,
+      "ranked_n": 5,
+      "matched_train_seeds": [
+        42,
+        123,
+        456,
+        789,
+        101112
+      ],
+      "random_mean": 0.368609,
+      "random_std": 0.04844,
+      "random_min": 0.256892,
+      "random_max": 0.472647,
+      "random_n": 20,
+      "random_rows": 100,
+      "train_seeds_per_subset": [
+        5,
+        5
+      ],
+      "n_random_at_or_above_ranked": 2,
+      "empirical_p": 0.142857,
+      "resolution_floor": 0.047619,
+      "p_is_at_resolution_floor": false,
+      "provisional": false,
+      "interpretation": "p = 0.1429 against a floor of 0.0476"
+    }
+  },
+  "arm_comparison": {
+    "4": {
+      "budget_k": 4,
+      "split": "val",
+      "ranked": {
+        "mean": 0.002138,
+        "std": 0.012789,
+        "n": 5
+      },
+      "sensorimotor": {
+        "mean": 0.046986,
+        "std": 0.01513,
+        "n": 5
+      },
+      "reading": "the motor strip beats the unrestricted ranking by 0.045 kappa; the unrestricted ranking is picking up channels that do not generalise"
+    },
+    "6": {
+      "budget_k": 6,
+      "split": "val",
+      "ranked": {
+        "mean": 0.165976,
+        "std": 0.02238,
+        "n": 5
+      },
+      "sensorimotor": {
+        "mean": 0.070491,
+        "std": 0.057318,
+        "n": 5
+      },
+      "reading": "unrestricted beats the motor strip by 0.095 kappa; part of the discriminative signal may be non-motor (gaze/attention correlates of the cue) -- a finding about the benchmark, not a defect"
+    },
+    "8": {
+      "budget_k": 8,
+      "split": "val",
+      "ranked": {
+        "mean": 0.174376,
+        "std": 0.056314,
+        "n": 5
+      },
+      "sensorimotor": {
+        "mean": 0.243848,
+        "std": 0.119306,
+        "n": 5
+      },
+      "reading": "the motor strip beats the unrestricted ranking by 0.069 kappa; the unrestricted ranking is picking up channels that do not generalise"
+    },
+    "12": {
+      "budget_k": 12,
+      "split": "val",
+      "ranked": {
+        "mean": 0.277988,
+        "std": 0.028385,
+        "n": 5
+      },
+      "sensorimotor": {
+        "mean": 0.271203,
+        "std": 0.07868,
+        "n": 5
+      },
+      "reading": "arms agree within 0.02 kappa; the signal is consistent with motor ERD and the montage recommendation is clean"
+    },
+    "16": {
+      "budget_k": 16,
+      "split": "val",
+      "ranked": {
+        "mean": 0.3251,
+        "std": 0.049439,
+        "n": 5
+      },
+      "sensorimotor": {
+        "mean": 0.287681,
+        "std": 0.044404,
+        "n": 5
+      },
+      "reading": "unrestricted beats the motor strip by 0.037 kappa; part of the discriminative signal may be non-motor (gaze/attention correlates of the cue) -- a finding about the benchmark, not a defect"
+    }
+  },
+  "distillation": {
+    "4": {
+      "budget_k": 4,
+      "split": "val",
+      "scratch": 0.002138,
+      "n_scratch": 5,
+      "distill": 0.033171,
+      "n_distill": 5,
+      "distill_shuffled_teacher": -0.002124,
+      "n_shuffled": 5,
+      "gain_over_scratch": 0.031033,
+      "gain_from_sham_teacher": -0.004262,
+      "reading": "gain 0.031 over scratch, while the sham teacher gives only -0.004; consistent with genuine transfer"
+    },
+    "6": {
+      "budget_k": 6,
+      "split": "val",
+      "scratch": 0.165976,
+      "n_scratch": 5,
+      "distill": 0.154929,
+      "n_distill": 5,
+      "distill_shuffled_teacher": 0.077,
+      "n_shuffled": 5,
+      "gain_over_scratch": -0.011047,
+      "gain_from_sham_teacher": -0.088976,
+      "reading": "distillation did not help at this budget"
+    },
+    "8": {
+      "budget_k": 8,
+      "split": "val",
+      "scratch": 0.174376,
+      "n_scratch": 5,
+      "distill": 0.152168,
+      "n_distill": 5,
+      "distill_shuffled_teacher": 0.150802,
+      "n_shuffled": 5,
+      "gain_over_scratch": -0.022208,
+      "gain_from_sham_teacher": -0.023574,
+      "reading": "distillation did not help at this budget"
+    }
+  },
+  "subject_heterogeneity": {
+    "4": {
+      "available": true,
+      "budget_k": 4,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 10,
+      "n_subjects": 16,
+      "mean": 0.003884,
+      "median": 0.000421,
+      "min": -0.095013,
+      "max": 0.164486,
+      "std": 0.062516,
+      "subjects_near_chance": [
+        "S007",
+        "S012",
+        "S017",
+        "S031",
+        "S045",
+        "S050",
+        "S055",
+        "S059",
+        "S075",
+        "S089",
+        "S096",
+        "S098",
+        "S108"
+      ],
+      "n_near_chance": 13,
+      "per_subject_mean_kappa": {
+        "S007": 0.006136,
+        "S012": -0.072238,
+        "S017": -0.047405,
+        "S031": 0.027913,
+        "S035": 0.088475,
+        "S045": -0.029753,
+        "S050": 0.000842,
+        "S055": -0.026622,
+        "S059": -0.028432,
+        "S068": 0.071012,
+        "S075": 0.039034,
+        "S089": 0.0,
+        "S093": 0.164486,
+        "S096": -0.039957,
+        "S098": -0.095013,
+        "S108": 0.003667
+      },
+      "note": "13 of 16 subjects sit near chance; report the distribution, not only the mean"
+    },
+    "6": {
+      "available": true,
+      "budget_k": 6,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 10,
+      "n_subjects": 16,
+      "mean": 0.167491,
+      "median": 0.144471,
+      "min": 0.004843,
+      "max": 0.307121,
+      "std": 0.087586,
+      "subjects_near_chance": [
+        "S012",
+        "S089"
+      ],
+      "n_near_chance": 2,
+      "per_subject_mean_kappa": {
+        "S007": 0.263173,
+        "S012": 0.004843,
+        "S017": 0.113149,
+        "S031": 0.123837,
+        "S035": 0.226394,
+        "S045": 0.142472,
+        "S050": 0.14647,
+        "S055": 0.224012,
+        "S059": 0.082768,
+        "S068": 0.258398,
+        "S075": 0.132755,
+        "S089": 0.041695,
+        "S093": 0.277922,
+        "S096": 0.307121,
+        "S098": 0.095401,
+        "S108": 0.239449
+      },
+      "note": "2 of 16 subjects sit near chance; report the distribution, not only the mean"
+    },
+    "8": {
+      "available": true,
+      "budget_k": 8,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 10,
+      "n_subjects": 16,
+      "mean": 0.177242,
+      "median": 0.162451,
+      "min": 0.016512,
+      "max": 0.375294,
+      "std": 0.106472,
+      "subjects_near_chance": [
+        "S050",
+        "S098"
+      ],
+      "n_near_chance": 2,
+      "per_subject_mean_kappa": {
+        "S007": 0.211778,
+        "S012": 0.054651,
+        "S017": 0.07837,
+        "S031": 0.157301,
+        "S035": 0.315981,
+        "S045": 0.118761,
+        "S050": 0.02148,
+        "S055": 0.253508,
+        "S059": 0.167601,
+        "S068": 0.234187,
+        "S075": 0.223946,
+        "S089": 0.139565,
+        "S093": 0.342833,
+        "S096": 0.375294,
+        "S098": 0.016512,
+        "S108": 0.124101
+      },
+      "note": "2 of 16 subjects sit near chance; report the distribution, not only the mean"
+    },
+    "12": {
+      "available": true,
+      "budget_k": 12,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 0,
+      "n_subjects": 16,
+      "mean": 0.277612,
+      "median": 0.311145,
+      "min": 0.033371,
+      "max": 0.493136,
+      "std": 0.118401,
+      "subjects_near_chance": [
+        "S050"
+      ],
+      "n_near_chance": 1,
+      "per_subject_mean_kappa": {
+        "S007": 0.493136,
+        "S012": 0.279549,
+        "S017": 0.314367,
+        "S031": 0.338478,
+        "S035": 0.298004,
+        "S045": 0.307923,
+        "S050": 0.033371,
+        "S055": 0.388586,
+        "S059": 0.135948,
+        "S068": 0.213324,
+        "S075": 0.318993,
+        "S089": 0.060936,
+        "S093": 0.398639,
+        "S096": 0.335732,
+        "S098": 0.19862,
+        "S108": 0.32619
+      },
+      "note": "1 of 16 subjects sit near chance; report the distribution, not only the mean"
+    },
+    "16": {
+      "available": true,
+      "budget_k": 16,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 0,
+      "n_subjects": 16,
+      "mean": 0.328243,
+      "median": 0.307525,
+      "min": 0.086996,
+      "max": 0.591592,
+      "std": 0.144151,
+      "subjects_near_chance": [],
+      "n_near_chance": 0,
+      "per_subject_mean_kappa": {
+        "S007": 0.517073,
+        "S012": 0.086996,
+        "S017": 0.194163,
+        "S031": 0.225695,
+        "S035": 0.483394,
+        "S045": 0.215314,
+        "S050": 0.135709,
+        "S055": 0.591592,
+        "S059": 0.310382,
+        "S068": 0.365028,
+        "S075": 0.304667,
+        "S089": 0.277581,
+        "S093": 0.57485,
+        "S096": 0.323769,
+        "S098": 0.298458,
+        "S108": 0.347217
+      },
+      "note": "no subject sits near chance at this budget"
+    },
+    "32": {
+      "available": true,
+      "budget_k": 32,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 0,
+      "n_subjects": 16,
+      "mean": 0.420211,
+      "median": 0.416666,
+      "min": 0.126475,
+      "max": 0.839197,
+      "std": 0.213645,
+      "subjects_near_chance": [],
+      "n_near_chance": 0,
+      "per_subject_mean_kappa": {
+        "S007": 0.839197,
+        "S012": 0.165413,
+        "S017": 0.373844,
+        "S031": 0.443163,
+        "S035": 0.512163,
+        "S045": 0.437383,
+        "S050": 0.160836,
+        "S055": 0.706401,
+        "S059": 0.126475,
+        "S068": 0.156025,
+        "S075": 0.610003,
+        "S089": 0.315156,
+        "S093": 0.591886,
+        "S096": 0.39595,
+        "S098": 0.226992,
+        "S108": 0.66249
+      },
+      "note": "no subject sits near chance at this budget"
+    },
+    "64": {
+      "available": true,
+      "budget_k": 64,
+      "split": "val",
+      "training": "scratch",
+      "n_runs": 5,
+      "rows_excluded_other_arms": 1,
+      "n_subjects": 16,
+      "mean": 0.44306,
+      "median": 0.388014,
+      "min": 0.206934,
+      "max": 0.902217,
+      "std": 0.171044,
+      "subjects_near_chance": [],
+      "n_near_chance": 0,
+      "per_subject_mean_kappa": {
+        "S007": 0.902217,
+        "S012": 0.387094,
+        "S017": 0.250862,
+        "S031": 0.406897,
+        "S035": 0.576017,
+        "S045": 0.381192,
+        "S050": 0.206934,
+        "S055": 0.611176,
+        "S059": 0.339197,
+        "S068": 0.330563,
+        "S075": 0.538457,
+        "S089": 0.29845,
+        "S093": 0.566649,
+        "S096": 0.388935,
+        "S098": 0.313336,
+        "S108": 0.590977
+      },
+      "note": "no subject sits near chance at this budget"
+    }
+  },
+  "coverage": {
+    "planned": 691,
+    "completed": 691,
+    "missing": 0,
+    "errored": 0,
+    "complete": true,
+    "missing_by_kind": {},
+    "missing_examples": [],
+    "note": "sweep complete"
+  },
+  "test_report": {
+    "kstar": 32,
+    "metric": "kappa",
+    "test_kappa_at_kstar": 0.291974,
+    "test_kappa_full": 0.325595,
+    "retained_fraction": 0.89674,
+    "n_runs_at_kstar": 5,
+    "n_runs_full": 5,
+    "budgets_searched": null,
+    "note": "k* was chosen on validation; this report evaluates it once on test"
+  }
+}

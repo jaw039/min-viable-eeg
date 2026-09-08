@@ -1,0 +1,25 @@
+# Author list taken from the git history of this repository. Confirm names,
+# order, affiliations and ORCIDs, and add contributors without commits
+# (Colin, Kiran) before release.
+cff-version: 1.2.0
+message: "If you use this code or these results, please cite the repository."
+title: "Minimum Viable EEG: the effective channel budget of scalp motor-imagery decoding"
+type: software
+version: 0.1.0
+date-released: "2026-09-08"
+repository-code: "https://github.com/jaw039/min-viable-eeg"
+authors:
+  - family-names: Wang
+    given-names: Jackie
+  - family-names: Lue Chee Lip
+    given-names: Edward
+  - family-names: Lockett
+    given-names: Jahari E.
+  - family-names: Shah
+    given-names: Younes
+keywords:
+  - EEG
+  - motor imagery
+  - channel selection
+  - brain-computer interface
+  - EEGMMIDB
